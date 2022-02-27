@@ -1,0 +1,5 @@
+cd build
+cmake ../
+make
+cd experiments/
+mpirun --use-hwthread-cpus -np 4 experiments_de_cc
