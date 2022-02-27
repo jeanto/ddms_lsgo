@@ -42,7 +42,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         static scalar get_bounds(scalar x, scalar min_bound, scalar max_bound);
         void differential_mutation_operator(optimization_problem &problem, size_t i_ind, size_t i_x, std::vector<size_t> &index);
         void evolution(optimization_problem &problem, size_t index_sub_problem);
-        void distributed_evolution(optimization_problem &problem, size_t index_sub_problem);
+        void ddms_evolution(optimization_problem &problem, size_t index_sub_problem);
 
 
     // node struct

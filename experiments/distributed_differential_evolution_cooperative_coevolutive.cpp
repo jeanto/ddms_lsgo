@@ -38,7 +38,7 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
         scalar gain = fx_best_solution;
 
         //evolution(problem, index_sub_problem);
-        distributed_evolution(problem, index_sub_problem);
+        ddms_evolution(problem, index_sub_problem);
 
         MPI_Barrier(MPI_COMM_WORLD);
         
@@ -170,7 +170,7 @@ void distributed_differential_evolution_cooperative_coevolutive::differential_mu
         - algoritmo trava no fim
         - adicionar o aepd e a migracao (com o melhor e o random)
 */
-void distributed_differential_evolution_cooperative_coevolutive::distributed_evolution(optimization_problem &problem, size_t index_sub_problem){
+void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(optimization_problem &problem, size_t index_sub_problem){
     std::set<size_t> sub_problem = problem.get_problem_structure()[index_sub_problem];
     std::uniform_int_distribution<int> dist_dim(0, dimension-1);
     std::uniform_real_distribution<scalar> dist_cr(0.0, 1.0);
