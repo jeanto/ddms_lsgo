@@ -173,17 +173,10 @@ PRs are welcome. If contributing with code, please leave the pedantic mode ON (`
 <table>
 <tr>
     <td align="center">
-        <a href="https://github.com/alandefreitas">
-            <img src="https://avatars.githubusercontent.com/u/5369819?v=4" width="100;" alt="alandefreitas"/>
+        <a href="https://github.com/jeanto">
+            <img src="https://avatars.githubusercontent.com/u/17091648?v=4" width="100;" alt="jeanto"/>
             <br />
-            <sub><b>Alan De Freitas</b></sub>
-        </a>
-    </td>
-    <td align="center">
-        <a href="https://github.com/RodolfoALopes">
-            <img src="https://avatars.githubusercontent.com/u/25302761?v=4" width="100;" alt="RodolfoALopes"/>
-            <br />
-            <sub><b>Rodolfo A Lopes</b></sub>
+            <sub><b>Jean Nunes Ribeiro Araujo</b></sub>
         </a>
     </td></tr>
 </table>
