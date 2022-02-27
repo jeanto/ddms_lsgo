@@ -16,17 +16,16 @@ Decomposition methods are useful components of optimization algorithms. This pro
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [Decomposition Library](#decomposition-library)
-  - [Examples](#examples)
-    - [Implementing an Optimization Problem](#implementing-an-optimization-problem)
-    - [Executing an Decomposition Method:](#executing-an-decomposition-method)
-  - [Integration](#integration)
-    - [Dependencies](#dependencies)
-  - [How it works](#how-it-works)
-    - [Decomposition Methods](#decomposition-methods)
-  - [Contributing](#contributing)
-    - [Collaborators and Contributors](#collaborators-and-contributors)
-  - [References](#references)
+- [Examples](#examples)
+  - [Implementing an Optimization Problem](#implementing-an-optimization-problem)
+  - [Executing an Decomposition Method:](#executing-an-decomposition-method)
+- [Integration](#integration)
+  - [Dependencies](#dependencies)
+- [How it works](#how-it-works)
+  - [Decomposition Methods](#decomposition-methods)
+- [Contributing](#contributing)
+  - [Collaborators and Contributors](#collaborators-and-contributors)
+- [References](#references)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
