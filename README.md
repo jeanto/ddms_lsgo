@@ -14,6 +14,7 @@ Decomposition methods are useful components of optimization algorithms. This pro
  
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<!--
 **Table of Contents**
 
 - [Decomposition Library](#decomposition-library)
@@ -29,7 +30,7 @@ Decomposition methods are useful components of optimization algorithms. This pro
   - [References](#references)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
+<!--
 ## Examples
 
 For very quick complete examples, see the directory [examples](/examples).
@@ -171,6 +172,7 @@ PRs are welcome. If contributing with code, please leave the pedantic mode ON (`
 ### Collaborators and Contributors
 
 <!-- readme: collaborators,contributors -start --> 
+<!--
 <table>
 <tr>
     <td align="center">
@@ -189,7 +191,7 @@ PRs are welcome. If contributing with code, please leave the pedantic mode ON (`
     </td></tr>
 </table>
 <!-- readme: collaborators,contributors -end -->
-
+<!--
 ## References
 
 These are some references we used for this work.
@@ -211,3 +213,4 @@ These are some references we used for this work.
 8)  Y. Sun, X. Li, A. Ernst and M. N. Omidvar, "Decomposition for Large-scale Optimization Problems with Overlapping Components," 2019 IEEE Congress on Evolutionary Computation (CEC), Wellington, New Zealand, 2019, pp. 326-333, doi: 10.1109/CEC.2019.8790204.
 
 9)  Virtual Library of Simulation Experiments. Test Functions and Datasets - Sphere Function. Access 08-11-2020. (2020) 
+10) -->
