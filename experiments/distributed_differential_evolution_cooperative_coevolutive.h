@@ -43,7 +43,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         void differential_mutation_operator(optimization_problem &problem, size_t i_ind, size_t i_x, std::vector<size_t> &index);
         void evolution(optimization_problem &problem, size_t index_sub_problem);
         void ddms_evolution(optimization_problem &problem, size_t index_sub_problem);
-
+        void fixed_prob_evolution(optimization_problem &problem, size_t index_sub_problem);
 
     // node struct
     struct node {
@@ -105,6 +105,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
 			                        //		generations it will take for the population to 
 			                        // 		enter a stable stagnation rate.
 
+        // TEDA params and variables
         std::vector<tedacloud> clouds;      // TEDA Clouds 
         std::vector<node> cloud_inds;       // return TEDA individuals on teda_cloud funcion  
         size_t window = 10;                 // maximun number of individuals to keep inside the cloud
@@ -112,6 +113,10 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         size_t k_teda = 0;                  // stream TEDA
         node ind_received;                  // individual received in the migration
         const scalar r0 = 0.001;
+
+        // FIXED and PROBA params and variables
+        size_t FIXED_INTERVAL = 100;    // as Apolloni (2008, 2014), it migrates every 100 generations
+        scalar PROBA_INTERVAL = 0.05;   // probabilist migration
 
     public:
         void convergence(std::set<size_t> &sub_problem);

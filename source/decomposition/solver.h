@@ -13,6 +13,7 @@ namespace decompose {
             status m_status = status::NotStarted;
             stats m_stats;
             debug_level m_debug = debug_level::None;
+            migration_method m_migration_method = migration_method::DDMS;
 
         public:
             virtual ~solver() = default;
@@ -28,6 +29,7 @@ namespace decompose {
             static std::string get_status_string(const status &s);
 
             void set_debug(const debug_level &d);
+            void set_migration_method(const migration_method &m);
 
             virtual void minimize(optimization_problem &problem_, std::vector<scalar> &x0) = 0;
 

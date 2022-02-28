@@ -10,7 +10,8 @@
 namespace decompose {
     typedef double scalar;
 
-    enum class debug_level { None, DDMS, Low, High };
+    enum class debug_level { None, VeryLow, Low, High };
+    enum class migration_method { DDMS, FIXED, PROBA };
 
     enum class status {
         NotStarted = -1,

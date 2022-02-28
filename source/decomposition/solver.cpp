@@ -41,6 +41,10 @@ void solver::set_debug(const debug_level &d) {
     m_debug = d;
 }
 
+void solver::set_migration_method(const migration_method &m) {
+    m_migration_method = m;
+}
+
 status solver::check_convergence(const criteria &stop, const criteria &current) {
     if((stop.fx_is_know) && (current.fx_best - stop.fx_best <= stop.error_fx_best)) {
         return status::FOptimum;
