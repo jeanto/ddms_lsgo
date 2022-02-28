@@ -26,6 +26,7 @@ These are some references we used for this work.
 8)  Y. Sun, X. Li, A. Ernst and M. N. Omidvar, "Decomposition for Large-scale Optimization Problems with Overlapping Components," 2019 IEEE Congress on Evolutionary Computation (CEC), Wellington, New Zealand, 2019, pp. 326-333, doi: 10.1109/CEC.2019.8790204.
 
 9)  Virtual Library of Simulation Experiments. Test Functions and Datasets - Sphere Function. Access 08-11-2020. (2020) 
+10) -->
 
 
 
