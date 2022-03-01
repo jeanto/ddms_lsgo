@@ -30,6 +30,8 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
 
     MPI_Barrier(MPI_COMM_WORLD);
 
+    int flag_exit = 0;
+
     status status_ = check_convergence(stop_criteria, current_criteria);
     while(status_ == status::Continue){
 
@@ -44,24 +46,29 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
             ddms_evolution(problem, index_sub_problem);
         }
 
-        MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Barrier(MPI_COMM_WORLD);
         
         gain = gain - fx_best_solution;
         this->stop_criteria.evaluations = max_evaluation;
         index_sub_problem = (index_sub_problem+1) % problem.get_problem_structure().size();
         if(m_debug >= debug_level::VeryLow){
-            std::cout << "#Iteration: " << current_criteria.iterations
-                    << " - #Evaluations: " << current_criteria.evaluations
-                    << " - #Index Subproblem: " << index_sub_problem
-                    << " - #Fx: " << fx_best_solution
-                    << " - #Gain: " << gain 
-                    << " - #Rank: " << rank << std::endl;
+            std::cout << "#It.: " << current_criteria.iterations
+                    << " #Eval: " << current_criteria.evaluations
+                    << " #Id Subp: " << index_sub_problem
+                    << " #Fx: " << fx_best_solution
+                    << " #Gain: " << gain 
+                    << " #Rank: " << rank << std::endl;
         }
         status_ = check_convergence(stop_criteria, current_criteria);
 
-        MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Barrier(MPI_COMM_WORLD);  
+
+        MPI_Bcast(&flag_exit, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        if (flag_exit) break;
     }
-    std::cout << std::endl << std::endl << "Solver Status: " << std::endl << get_status_string(status_) << std::endl;
+
+    std::cout << std::endl << std::endl << "[" << rank << "] Solver Status: " << std::endl << get_status_string(status_) << std::endl;
     std::cout << "Fx Best Solution: " << fx_best_solution << std::endl << std::endl;
     // Tratar aqui para encerrar!
 
@@ -196,7 +203,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     MPI_Request myRequestSend[3];
     MPI_Request myRequest;
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
 
     // islands keeps a broadcasting openned to receive signal to exit
 	if (rank != POOL){
@@ -415,7 +422,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     if(this->m_debug >= debug_level::VeryLow) {
 	    std::cout << "[" << rank << "] saindo..." << std::endl;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
 }
 
 std::vector<scalar> distributed_differential_evolution_cooperative_coevolutive::get_best_solution() const{
@@ -844,7 +851,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
         // 1 -> it will be made a migration; 0 -> otherwise
         int migration_code_recv = 0; 
         if(this->m_migration_method == migration_method::FIXED) {
-            if (current_criteria.iterations % FIXED_INTERVAL == 0) {
+            if (current_criteria.iterations % (FIXED_INTERVAL+rank) == 0) {
                 migration_code_recv = 1;
             } else {
                 migration_code_recv = 0;
@@ -859,12 +866,10 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
         }
 
 		MPI_Send(&migration_code_recv, 1, MPI_INT, next, 0, MPI_COMM_WORLD);
-
-        std::cout << "[" << rank << "] enviou beacon {" << migration_code_recv << "}" << " para [" << next << "] " << std::endl;
-
+        //std::cout << "[" << rank << "] enviou beacon {" << migration_code_recv << "}" << " para [" << next << "] " << std::endl;
         int migration_code_send = 0;
         MPI_Recv(&migration_code_send, 1, MPI_INT, prev, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        std::cout << "[" << rank << "] recebeu beacon {" << migration_code_send << "}" << " de [" << prev << "] " << std::endl;
+        //std::cout << "[" << rank << "] recebeu beacon {" << migration_code_send << "}" << " de [" << prev << "] " << std::endl;
 
         /* do migration -> send the best individual to the neighbor island (behind) */
         if (migration_code_send == 1){
@@ -875,7 +880,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
 
             MPI_Send(best_solution.data(), dimension, MPI_DOUBLE, prev, 0, MPI_COMM_WORLD);
 
-            std::cout << "[" << rank << "] enviou para [" << prev << "] um individuo" << std::endl;
+            //std::cout << "[" << rank << "] enviou para [" << prev << "] um individuo" << std::endl;
         }
 
         /* receive migration -> receive the best individual from the neighbor island (forward) */
@@ -919,7 +924,6 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
             std::cout << "[" << rank << "] saindo!" << std::endl;
             break;
         }
-
     }
 
     if(this->m_debug >= debug_level::VeryLow) {
@@ -927,285 +931,3 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
     }
     MPI_Barrier(MPI_COMM_WORLD);
 }
-
-
-// void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evolution(optimization_problem &problem, size_t index_sub_problem){
-//     std::set<size_t> sub_problem = problem.get_problem_structure()[index_sub_problem];
-//     std::uniform_int_distribution<int> dist_dim(0, dimension-1);
-//     std::uniform_real_distribution<scalar> dist_cr(0.0, 1.0);
-//     const size_t n_solutions = 4;
-//     std::vector<size_t> index(n_solutions);
-//     if(this->m_debug >= debug_level::Low) {
-//         std::cout << "Current Iteration: " << this->current_criteria.iterations
-//                   << " - Evaluations: " << this->current_criteria.evaluations
-//                   << " - Fx: " << fx_best_solution << std::endl;
-//     }
-
-//     srand(time(NULL) + rank);
-
-// 	// compute the next and previous nodes
-// 	int next 		= (rank + 1) % size;
-//     if (next == 0){ // exclude the POOL of the ring
-//         next = 1;
-//     }
-// 	int prev 		= (size + rank - 1) % size;
-//     if (prev == 0){ // exclude the POOL of the ring
-//         prev = size - 1;
-//     }
-
-//     // island keeps a broadcasting conection openned to receive signal to exit
-// 	int exit_item;
-//     int flag_exit   = 0;	// flag to exit from evolution loop
-//     int exit        = 0;
-// 	MPI_Request exitRequest = MPI_REQUEST_NULL;
-//     MPI_Request myRequest;
-
-//     MPI_Barrier(MPI_COMM_WORLD);
-
-//     // islands keeps a broadcasting openned to receive signal to exit
-// 	if (rank != POOL){
-// 	    MPI_Irecv(&exit_item, 1, MPI_INT, POOL, 3, MPI_COMM_WORLD, &exitRequest);
-// 	}
-
-//     this->m_status = check_convergence(this->stop_criteria, this->current_criteria);
-//     while(this->m_status == status::Continue){
-
-//         int rank_source;
-//         if (rank == POOL){
-// 			MPI_Status myStatus;
-// 			MPI_Irecv(&rank_source, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myRequest);
-//             if(this->m_debug >= debug_level::VeryLow) {
-// 			    std::cout << "[" << rank << "] esperando chegar solicitação de saída..." << std::endl;
-//             }
-// 			MPI_Wait(&myRequest, &myStatus);
-
-//             // send broadcasting to stop because some island reached the stop criterion
-//             if (myStatus.MPI_TAG == 0){
-//                 int exit_signal = 1;
-//                 if(this->m_debug >= debug_level::VeryLow) {
-// 				    std::cout 	<< "[" << rank << "]" << " diz que [" << rank_source 
-// 				    		<< "] terminou. Vou avisar a todos... " << std::endl;
-//                 }
-// 				for (int i = 1; i < size; i++){
-// 					MPI_Send(&exit_signal, 1, MPI_INT, i, 3, MPI_COMM_WORLD);						
-// 				}
-//                 break;
-//             }
-//         }
-//         else{
-
-//             // Check if some island has finished
-// 			MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-// 			if (exit) {
-//                 if(this->m_debug >= debug_level::VeryLow) {
-// 				    std::cout << "[" << rank << "] alguem terminou. Saindo..." << std::endl;
-//                 }
-//                 this->m_status == status::IslandExit;
-// 				break;
-// 			}
-
-//             for(size_t i = 0; i < de_size_pop; i++){
-//                 index[0] = i;
-//                 generate_random_index(index, n_solutions, 0, de_size_pop-1);
-//                 size_t r = dist_dim(default_generator());
-//                 pop_aux[i] = pop[i];
-//                 for(unsigned long j : sub_problem){
-//                     if(j == r || dist_cr(default_generator()) <= de_cr){
-//                         differential_mutation_operator(problem, i, j, index);
-//                     }
-//                 }
-//                 scalar fx = problem.value(pop_aux[i]);
-//                 ++this->current_criteria.evaluations;
-//                 fx_pop_aux[i] = fx;
-//                 update_best_solution(pop_aux[i], fx, i);
-//             }
-//             for(size_t i = 0; i < de_size_pop; i++){
-//                 if(fx_pop_aux[i] < fx_pop[i]){
-//                     pop[i] = pop_aux[i];
-//                     fx_pop[i] = fx_pop_aux[i];
-//                 }
-//             }
-
-//             ++this->current_criteria.iterations;
-//             this->current_criteria.fx_best = fx_best_solution;
-//             this->m_status = check_convergence(this->stop_criteria, this->current_criteria);            
-//             if(this->m_debug >= debug_level::VeryLow) {
-//                 std::cout << "Current Iteration: " << this->current_criteria.iterations
-//                         << " - Evaluations: " << this->current_criteria.evaluations
-//                         << " - Fx: " << fx_best_solution 
-//                         << " - Rank: " << rank << std::endl;
-//             }  
-
-//             // Check if some island has finished
-// 			// MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-// 			// if (exit) {
-//             //     if(this->m_debug >= debug_level::VeryLow) {
-// 			// 	    std::cout << "[" << rank << "] alguem terminou. Saindo..." << std::endl;
-//             //     }
-//             //     this->m_status == status::IslandExit;
-// 			// 	break;
-// 			// }            
-
-//             if (this->m_status != status::Continue){
-//                 if(this->m_debug >= debug_level::VeryLow) {
-// 				    // a stop criterian has been reached, the process has terminated
-// 				    std::cout << "[" << rank << "] terminei!" << std::endl;                
-//                 }
-// 				MPI_Send(&rank, 1, MPI_INT, POOL, 0, MPI_COMM_WORLD);	
-// 				MPI_Wait(&exitRequest, MPI_STATUS_IGNORE);        
-//                 break;
-//             }
-
-//             // send to the neighbor island (forward) a migration code
-//             // 1 -> it will be made a migration; 0 -> otherwise
-//             int migration_code_recv = 0; 
-//             // if(this->m_migration_method == migration_method::FIXED) {
-//             //     if (current_criteria.iterations % FIXED_INTERVAL == 0) {
-//             //         migration_code_recv = 1;
-//             //     } else {
-//             //         migration_code_recv = 0;
-//             //     }
-//             // }
-//             //else if (this->m_migration_method == migration_method::PROBA) {
-//                 if (rand_0_1() < PROBA_INTERVAL){
-//                     migration_code_recv = 1;
-//                 } else {
-//                     migration_code_recv = 0;
-//                 }
-//             //}
-
-//             // Check if some island has finished
-// 			// MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-// 			// if (exit) {
-//             //     if(this->m_debug >= debug_level::VeryLow) {
-// 			// 	    std::cout << "[" << rank << "] alguem terminou. Saindo..." << std::endl;
-//             //     }
-//             //     this->m_status == status::IslandExit;
-// 			// 	break;
-// 			// }
-
-//             MPI_Isend(&migration_code_recv, 1, MPI_INT, next, 0, MPI_COMM_WORLD, &myRequest);
-//             int exit_signal = 0;
-//             int flag_send = 0;
-//             do{
-//                 exit = 0;
-//                 MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-//                 if (exit){
-//                     exit_signal = -10;
-//                     MPI_Cancel(&myRequest);
-//                     MPI_Request_free(&myRequest);
-//                     break;
-//                 }
-
-//                 MPI_Test(&myRequest, &flag_send, MPI_STATUS_IGNORE);
-//             } while (flag_send != 1);
-
-//             // some island terminated
-//             if (exit_signal < 0) break;
-
-//             //MPI_Send(&migration_code_recv, 1, MPI_INT, next, 0, MPI_COMM_WORLD);
-//             std::cout << "[" << rank << "] enviou beacon {" << migration_code_recv << "}" << " para [" << next << "] " << std::endl;
-
-//             int migration_code_send = 0;
-//             //MPI_Recv(&migration_code_send, 1, MPI_INT, prev, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//             MPI_Irecv(&migration_code_send, 1, MPI_INT, prev, 0, MPI_COMM_WORLD, &myRequest);
-//             //MPI_Test(&myRequest, &flag_send, MPI_STATUS_IGNORE);
-//             int flag_recv = 0;
-//             do{
-//                 exit = 0;
-//                 MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-//                 if (exit){
-//                     exit_signal = -10;
-//                     MPI_Cancel(&myRequest);
-//                     MPI_Request_free(&myRequest);
-//                     break;
-//                 }
-
-//                 MPI_Test(&myRequest, &flag_recv, MPI_STATUS_IGNORE);
-//             } while (flag_recv != 1);
-//             // some island terminated
-//             if (exit_signal < 0) break;
-
-//             std::cout << "[" << rank << "] recebeu beacon {" << migration_code_send << "}" << " de [" << prev << "] " << std::endl;
-
-//             /* do migration -> send the best individual to the neighbor island (behind) */
-//             if (migration_code_send == 1){
-                    
-//                 if(this->m_debug >= debug_level::VeryLow) {
-//                     std::cout << "[" << rank << "] vai enviar para [" << prev << "] um individuo" << std::endl;
-//                 }
-
-//                 //MPI_Send(best_solution.data(), dimension, MPI_DOUBLE, prev, 0, MPI_COMM_WORLD);
-
-//                 MPI_Isend(best_solution.data(), dimension, MPI_DOUBLE, prev, 0, MPI_COMM_WORLD, &myRequest);
-//                 exit_signal = 0;
-//                 int flag_send = 0;
-//                 do{
-//                     exit = 0;
-//                     MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-//                     if (exit){
-//                         exit_signal = -10;
-//                         MPI_Cancel(&myRequest);
-//                         MPI_Request_free(&myRequest);
-//                         break;
-//                     }
-
-//                     MPI_Test(&myRequest, &flag_send, MPI_STATUS_IGNORE);
-//                 } while (flag_send != 1);
-
-//                 // some island terminated
-//                 if (exit_signal < 0) break;
-
-//                 std::cout << "[" << rank << "] enviou para [" << prev << "] um individuo" << std::endl;
-//             }
-
-//             /* receive migration -> receive the best individual from the neighbor island (forward) */
-//             if (migration_code_recv == 1) {
-
-//                 std::vector<scalar> ind_mig;
-//                 ind_mig.reserve(dimension); 
-
-//                 //MPI_Recv(ind_mig.data(), dimension, MPI_DOUBLE, next, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-//                 MPI_Irecv(ind_mig.data(), dimension, MPI_DOUBLE, next, 0, MPI_COMM_WORLD, &myRequest);
-//                 int flag_recv = 0;
-//                 do{
-//                     exit = 0;
-//                     MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-//                     if (exit){
-//                         exit_signal = -10;
-//                         MPI_Cancel(&myRequest);
-//                         MPI_Request_free(&myRequest);
-//                         break;
-//                     }
-
-//                     MPI_Test(&myRequest, &flag_recv, MPI_STATUS_IGNORE);
-//                 } while (flag_recv != 1);
-//                 // some island terminated
-//                 if (exit_signal < 0) break;
-
-//                 if(this->m_debug >= debug_level::VeryLow) {
-//                     std::cout << "[" << rank << "] recebeu de [" << next << "]" << std::endl;
-//                 }
-
-//                 scalar fx_mig = problem.value(ind_mig);
-//                 ++this->current_criteria.evaluations;
-                
-//                 // avoid current best individual is pruned
-//                 size_t id = rand() % de_size_pop;
-//                 while (id_best_solution == id) {
-//                     id = rand() % de_size_pop;
-//                 }
-//                 pop[id] = ind_mig;
-//                 fx_pop[id] = fx_mig;
-
-//                 update_best_solution(ind_mig, fx_mig, id);    
-//             }
-
-//         }
-//     }
-
-//     if(this->m_debug >= debug_level::VeryLow) {
-// 	    std::cout << "[" << rank << "] saindo..." << std::endl;
-//     }
-//     MPI_Barrier(MPI_COMM_WORLD);
-// }

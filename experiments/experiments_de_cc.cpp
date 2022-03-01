@@ -156,7 +156,7 @@ int main() {
                 }
                 criteria current_, stop_;
                 options options_ = options::defaults();
-                stop_.evaluations = 3e6;
+                stop_.evaluations = 2.02e6;
                 stop_.iterations = LONG_MAX;
                 stop_.fx_is_know = true;
                 //stop_.error_fx_best = 0.0;
@@ -179,7 +179,7 @@ int main() {
                         solver.set_debug(debug_level::Low);
                         //solver.set_debug(debug_level::VeryLow);
                         //solver.set_debug(debug_level::None);
-                        solver.set_migration_method(migration_method::PROBA);
+                        solver.set_migration_method(migration_method::DDMS);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
