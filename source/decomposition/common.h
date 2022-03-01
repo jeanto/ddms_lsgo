@@ -18,8 +18,7 @@ namespace decompose {
         Continue = 0,
         IterationLimit,
         EvaluationLimit,
-        FOptimum,
-        IslandExit
+        FOptimum
     };
 
     scalar max_limits();

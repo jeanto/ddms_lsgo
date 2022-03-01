@@ -30,7 +30,10 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    int flag_exit = 0;
+	int is_to_exit_program = 0;
+	MPI_Request exitProgramRequest = MPI_REQUEST_NULL;
+
+    MPI_Irecv(&is_to_exit_program, 1, MPI_INT, MPI_ANY_SOURCE, 5, MPI_COMM_WORLD, &exitProgramRequest);
 
     status status_ = check_convergence(stop_criteria, current_criteria);
     while(status_ == status::Continue){
@@ -61,11 +64,25 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
         }
         status_ = check_convergence(stop_criteria, current_criteria);
 
-        //MPI_Barrier(MPI_COMM_WORLD);  
+        if (status_ != status::Continue){
+            is_to_exit_program = 1;
+            for (int i = 0; i < size; i++){
+                if (rank != i){
+                    MPI_Send(&is_to_exit_program, 1, MPI_INT, i, 5, MPI_COMM_WORLD);			
+                }			
+            }
+        }
 
-        MPI_Bcast(&flag_exit, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-        if (flag_exit) break;
+        MPI_Barrier(MPI_COMM_WORLD);
+    
+        // Check if some island has finished
+        MPI_Test(&exitProgramRequest, &is_to_exit_program, MPI_STATUS_IGNORE);
+        if (is_to_exit_program != 0) {
+            if(this->m_debug >= debug_level::VeryLow) {
+                std::cout << "[" << rank << "] alguem terminou o programa. Saindo do programa!!!" << std::endl;
+            }
+            break;
+        }
     }
 
     std::cout << std::endl << std::endl << "[" << rank << "] Solver Status: " << std::endl << get_status_string(status_) << std::endl;
@@ -194,9 +211,8 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     }
 
     // island keeps a broadcasting conection openned to receive signal to exit
-	int exit_item = 0;
-    int exit = 0;
-    int flag_exit   = 0;	// flag to exit from evolution loop
+	int exit_item   = 0;
+    int is_to_exit  = 0;
     int flag_send   = 0;	// flag to check send of request
     int flag_recv   = 0;	// flat to check receive of request
 	MPI_Request exitRequest = MPI_REQUEST_NULL;
@@ -207,7 +223,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 
     // islands keeps a broadcasting openned to receive signal to exit
 	if (rank != POOL){
-		MPI_Irecv(&exit_item, 1, MPI_INT, POOL, 3, MPI_COMM_WORLD, &exitRequest);
+		MPI_Irecv(&exit_item, 1, MPI_INT, POOL, 4, MPI_COMM_WORLD, &exitRequest);
 	}
 
     this->m_status = check_convergence(this->stop_criteria, this->current_criteria);
@@ -226,15 +242,15 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
             }
 			MPI_Wait(&myRequest, &myStatus);
 
-            // send broadcasting to stop because some island reached the stop criterion
-            if (myStatus.MPI_TAG == 0){
-                int exit_signal = 1;
+            // send broadcasting to stop because some island reached some stop criterion
+            if (myStatus.MPI_TAG != 0){
+                int exit_signal = myStatus.MPI_TAG;
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout 	<< "[" << rank << "]" << " diz que [" << rank_source 
 				    		<< "] terminou. Vou avisar a todos... " << std::endl;
                 }
 				for (int i = 1; i < size; i++){
-					MPI_Send(&exit_signal, 1, MPI_INT, i, 3, MPI_COMM_WORLD);						
+					MPI_Send(&exit_signal, 1, MPI_INT, i, 4, MPI_COMM_WORLD);						
 				}
                 break;
             }
@@ -249,37 +265,22 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 				ind_received.x = ind;
 				teda_cloud(ind_received, problem);
 
-                int tag_send = 2;
-				MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, tag_send, MPI_COMM_WORLD);
+				MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
 
                 if(this->m_debug >= debug_level::VeryLow) {
                     std::cout 	<< "[" << rank << "] enviou um individuo para : [" << rank_source 
                     		<< "]" << "[" << current_criteria.evaluations << "]" << std::endl;
                 }
-
-                this->m_status = check_convergence(this->stop_criteria, this->current_criteria);  
-				if (this->m_status != status::Continue){
-                    if(this->m_debug >= debug_level::VeryLow) {
-					    std::cout 	<< "[" << rank << "] terminei. Vou avisar a todos!" << std::endl;
-                    }
-					int exit_signal = 1;
-
-					for (int i = 1; i < size; i++){
-						MPI_Send(&exit_signal, 1, MPI_INT, i, 3, MPI_COMM_WORLD);						
-					}
-					break;
-				}
             }
         }
         else{
             
             // Check if some island has finished
-			MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-			if (exit) {
+			MPI_Test(&exitRequest, &is_to_exit, MPI_STATUS_IGNORE);
+			if (is_to_exit != 0) {
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout << "[" << rank << "] alguem terminou. Saindo..." << std::endl;
                 }
-                this->m_status == status::IslandExit;
 				break;
 			}
 
@@ -316,21 +317,24 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
             }
 
             // Check if some island has finished
-			MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-			if (exit) {
+			MPI_Test(&exitRequest, &is_to_exit, MPI_STATUS_IGNORE);
+			if (is_to_exit != 0) {
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout << "[" << rank << "] alguem terminou. Saindo..." << std::endl;
                 }
-                this->m_status == status::IslandExit;
 				break;
 			}            
 
             if (this->m_status != status::Continue){
                 if(this->m_debug >= debug_level::VeryLow) {
 				    // a stop criterian has been reached, the process has terminated
-				    std::cout << "[" << rank << "] terminei!" << std::endl;                
+				    std::cout << "[" << rank << "] terminei!" << int(this->m_status) << std::endl;                
                 }
-				MPI_Send(&rank, 1, MPI_INT, POOL, 0, MPI_COMM_WORLD);	
+                int tag_to_exit = int(this->m_status);
+                if (this->m_status == status::EvaluationLimit)
+                    tag_to_exit = 2;
+                else tag_to_exit = 1;
+				MPI_Send(&rank, 1, MPI_INT, POOL, tag_to_exit, MPI_COMM_WORLD);	
 				MPI_Wait(&exitRequest, MPI_STATUS_IGNORE);        
                 break;
             }
@@ -350,7 +354,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 				    std::cout << "[" << rank << "] vou pedir para [" << POOL << "]" << std::endl;
                 }
 
-				int tag_send = 1;
+				int tag_send = 0;
 				MPI_Isend(&rank, 1, MPI_INT, POOL, tag_send, MPI_COMM_WORLD, &myRequestSend[0]);
 				MPI_Isend(best_solution.data(), dimension, MPI_DOUBLE, POOL, tag_send, MPI_COMM_WORLD, &myRequestSend[1]);
 				MPI_Isend(&current_criteria.evaluations, 1, MPI_LONG, POOL, tag_send, MPI_COMM_WORLD, &myRequestSend[2]);
@@ -358,9 +362,9 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 				int exit_signal = 0;
                 flag_send = 0;
 				do{
-					exit = 0;
-					MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-					if (exit){
+					is_to_exit = 0;
+					MPI_Test(&exitRequest, &is_to_exit, MPI_STATUS_IGNORE);
+					if (is_to_exit != 0){
 						exit_signal = -10;
 						MPI_Cancel(myRequestSend);
 						MPI_Request_free(myRequestSend);
@@ -381,13 +385,13 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 				ind_mig.reserve(dimension); 
                 MPI_Request myRequestNewInd;
 
-                MPI_Irecv(ind_mig.data(), dimension, MPI_DOUBLE, POOL, 2, MPI_COMM_WORLD, &myRequestNewInd);
+                MPI_Irecv(ind_mig.data(), dimension, MPI_DOUBLE, POOL, 0, MPI_COMM_WORLD, &myRequestNewInd);
 
 				flag_recv = 0;
 				do{
-					exit = 0;
-					MPI_Test(&exitRequest, &exit, MPI_STATUS_IGNORE);
-					if (exit) {
+					is_to_exit = 0;
+					MPI_Test(&exitRequest, &is_to_exit, MPI_STATUS_IGNORE);
+					if (is_to_exit != 0) {
 						exit_signal = -10;
 						MPI_Cancel(&myRequestNewInd);
 						MPI_Request_free(&myRequestNewInd);	
@@ -397,6 +401,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 					MPI_Test(&myRequestNewInd, &flag_recv, MPI_STATUS_IGNORE);
 				} while (flag_recv != 1);
 
+                // some island terminated
 				if (exit_signal < 0) break;
 
                 if(this->m_debug >= debug_level::VeryLow) {
@@ -797,7 +802,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
 	int prev 		= (size + rank - 1) % size;
 
     // island keeps a broadcasting conection openned to receive signal to exit
-	int exit_item;
+	int is_to_exit_subproblem;
     int flag_exit   = 0;	// flag to exit from evolution loop
     int exit        = 0;
 	MPI_Request exitRequest = MPI_REQUEST_NULL;
@@ -807,7 +812,8 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
 
     // islands keeps a broadcasting openned to receive signal to exit
 	//if (rank != POOL){
-	MPI_Irecv(&exit_item, 1, MPI_INT, POOL, 3, MPI_COMM_WORLD, &exitRequest);
+	//MPI_Irecv(&exit_item, 1, MPI_INT, POOL, 3, MPI_COMM_WORLD, &exitRequest);
+    MPI_Irecv(&is_to_exit_subproblem, 1, MPI_INT, MPI_ANY_SOURCE, 4, MPI_COMM_WORLD, &exitRequest);
 	//}
 
     this->m_status = check_convergence(this->stop_criteria, this->current_criteria);
@@ -844,8 +850,6 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
                     << " - Fx: " << fx_best_solution 
                     << " - Rank: " << rank << std::endl;
         }  
-
-
 
         // send to the neighbor island (forward) a migration code
         // 1 -> it will be made a migration; 0 -> otherwise
@@ -914,16 +918,33 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
                 // a stop criterian has been reached, the process has terminated
                 std::cout << "[" << rank << "] terminei!" << std::endl;                
             }
+            is_to_exit_subproblem = 1;
+            for (int i = 0; i < size; i++){
+                if (rank != i){
+                    MPI_Send(&is_to_exit_subproblem, 1, MPI_INT, i, 4, MPI_COMM_WORLD);			
+                }			
+            }
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+    
+        // Check if some island has finished
+        MPI_Test(&exitRequest, &is_to_exit_subproblem, MPI_STATUS_IGNORE);
+        if (is_to_exit_subproblem != 0) {
+            if(this->m_debug >= debug_level::VeryLow) {
+                std::cout << "[" << rank << "] alguem terminou o subproblema. Saindo do subproblema!!!" << std::endl;
+            }
+            break;
         }
 
         // exit signal to exit of the loop
-        MPI_Bcast(&flag_exit, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // MPI_Bcast(&flag_exit, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-        if (flag_exit == 1){
-            // a stop criterian has been reached, the process has terminated
-            std::cout << "[" << rank << "] saindo!" << std::endl;
-            break;
-        }
+        // if (flag_exit == 1){
+        //     // a stop criterian has been reached, the process has terminated
+        //     std::cout << "[" << rank << "] saindo!" << std::endl;
+        //     break;
+        // }
     }
 
     if(this->m_debug >= debug_level::VeryLow) {
