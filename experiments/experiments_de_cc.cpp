@@ -176,10 +176,10 @@ int main() {
                         vector<scalar> x0(dimension, 0.0);
                         distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
-                        //solver.set_debug(debug_level::Low);
-                        solver.set_debug(debug_level::VeryLow);
+                        solver.set_debug(debug_level::Low);
+                        //solver.set_debug(debug_level::VeryLow);
                         //solver.set_debug(debug_level::None);
-                        solver.set_migration_method(migration_method::FIXED);
+                        solver.set_migration_method(migration_method::PROBA);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
