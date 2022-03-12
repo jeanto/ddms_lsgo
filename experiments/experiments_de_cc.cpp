@@ -137,12 +137,13 @@ void save_results(const string &id_version, size_t id_func, size_t id_rep, vecto
 }
 
 int main() {
-    const size_t max_id_function = 1; //15;
+    const size_t max_id_function = 4; //15;
     const size_t max_rep = 1; //30;
     string methods[] = {"DG"};
     //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
 
-    for(size_t id_function = 1; id_function <= max_id_function; id_function++){
+    //for(size_t id_function = 1; id_function <= max_id_function; id_function++){
+    for(size_t id_function = max_id_function; id_function <= max_id_function; id_function++){
         for(const auto & method : methods){
             for(size_t i_rep = 1; i_rep <= max_rep; i_rep++) {
 
@@ -179,7 +180,7 @@ int main() {
                         solver.set_debug(debug_level::Low);
                         //solver.set_debug(debug_level::VeryLow);
                         //solver.set_debug(debug_level::None);
-                        solver.set_migration_method(migration_method::DDMS);
+                        solver.set_migration_method(migration_method::FIXED);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
@@ -235,8 +236,10 @@ int main() {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+                        solver.set_migration_method(migration_method::DDMS);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;

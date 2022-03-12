@@ -42,6 +42,7 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
         this->stop_criteria.evaluations = max_eval_tmp;
         scalar gain = fx_best_solution;
 
+        // Se subproblema eh igual a 1, chama evolution()
         //evolution(problem, index_sub_problem);
         if(this->m_migration_method != migration_method::DDMS){
             fixed_proba_evolution(problem, index_sub_problem);
@@ -255,16 +256,18 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                 break;
             }
             else{
-				MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 if(this->m_debug >= debug_level::VeryLow) {
-				    std::cout << "[" << rank_source << "] solicitou uma migracao. " << std::endl;
+				    std::cout << "[" << rank << "]" << " migracao solicitada por [" << rank_source << "]" << std::endl;
                 }
+				MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
                 // TEDA Cloud
 				ind_received.x = ind;
 				teda_cloud(ind_received, problem);
 
+                //MPI_Send(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
+                size_t id_send = rand() % cloud_inds.size();
 				MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
 
                 if(this->m_debug >= debug_level::VeryLow) {
@@ -325,17 +328,18 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 				break;
 			}            
 
+            // a stop criterian has been reached, the process has terminated
             if (this->m_status != status::Continue){
                 if(this->m_debug >= debug_level::VeryLow) {
-				    // a stop criterian has been reached, the process has terminated
 				    std::cout << "[" << rank << "] terminei!" << int(this->m_status) << std::endl;                
                 }
                 int tag_to_exit = int(this->m_status);
-                if (this->m_status == status::EvaluationLimit)
-                    tag_to_exit = 2;
-                else tag_to_exit = 1;
-				MPI_Send(&rank, 1, MPI_INT, POOL, tag_to_exit, MPI_COMM_WORLD);	
-				MPI_Wait(&exitRequest, MPI_STATUS_IGNORE);        
+
+				MPI_Isend(&rank, 1, MPI_INT, POOL, tag_to_exit, MPI_COMM_WORLD, &myRequest);	
+                MPI_Test(&myRequest, &flag_send, MPI_STATUS_IGNORE);
+                //MPI_Send(&rank, 1, MPI_INT, POOL, tag_to_exit, MPI_COMM_WORLD);
+                MPI_Wait(&exitRequest, MPI_STATUS_IGNORE);        
+
                 break;
             }
 
@@ -606,15 +610,14 @@ void distributed_differential_evolution_cooperative_coevolutive::teda_cloud(node
         outlier_in_all_clouds = true;
         size_t n_cloud = clouds.size();
         size_t new_ind = 0;
-
-        for(size_t c = n_cloud-1; c >= 0; c--){
+        for(int c = n_cloud - 1; c >= 0; c--){
             tedacloud c_cloud = clouds[c];
 
             scalar sk = c_cloud.sk + 1;
 
             // update mean of the cloud
 			std::vector<scalar> uk;
-			uk.reserve(dimension);
+			uk.resize(dimension);
 			for (size_t j = 0; j < dimension; j++){
 				uk[j] = (((sk - 1.0) / sk) * c_cloud.uk[j]) + (ind.x[j] / sk);
 			}
@@ -650,7 +653,7 @@ void distributed_differential_evolution_cooperative_coevolutive::teda_cloud(node
 					}    
 				}  
 				else is_outlier = true;
-			}              
+			}      
 
             // it is not outlier, update cloud c 
             if (!is_outlier){
@@ -669,7 +672,7 @@ void distributed_differential_evolution_cooperative_coevolutive::teda_cloud(node
 				clouds[c] = c_cloud;
 
 				// find its place, not create new cloud
-				outlier_in_all_clouds = false;
+				outlier_in_all_clouds = false;                
             }
             else{
                 // send just one individuo
@@ -681,10 +684,12 @@ void distributed_differential_evolution_cooperative_coevolutive::teda_cloud(node
                 }
             }
         }
+         
+        //std::cout << "teda7" << std::endl;
 
         // it is outlier in all clouds
         if (outlier_in_all_clouds){
-            if (n_cloud <= max_n_clouds){
+            if (n_cloud < max_n_clouds){
 				tedacloud cloudi;
 				cloudi.id = n_cloud+1;
 				// create cloud i and add x1
@@ -708,6 +713,7 @@ void distributed_differential_evolution_cooperative_coevolutive::teda_cloud(node
             }
             update_cloud(idc, ind);
         }
+        
 
 		// individuo is not outlier in any cloud
 		if (new_ind == 0){
@@ -730,7 +736,7 @@ void distributed_differential_evolution_cooperative_coevolutive::update_cloud(si
 
     // update mean of cloud c
     std::vector<scalar> uk;
-    uk.reserve(dimension);
+    uk.resize(dimension);
     for (size_t j = 0; j < dimension; j++){
         uk[j] = (((sk - 1.0) / sk) * clouds[c].uk[j]) + (ind.x[j] / sk);
     }
@@ -758,7 +764,7 @@ std::vector<scalar> distributed_differential_evolution_cooperative_coevolutive::
 
     size_t igen = 1;
     std::vector<scalar> xp;
-    xp.reserve(dimension);
+    xp.resize(dimension);
     for (size_t i = 0; i < dimension; i++){
         std::default_random_engine gen1;
         std::normal_distribution<scalar> distribution(best_point[i],(std::log(igen)/igen)*(std::fabs(pop_ls.x[i]-best_point[i])));        
