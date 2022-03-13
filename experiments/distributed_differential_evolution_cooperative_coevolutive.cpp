@@ -205,6 +205,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     std::uniform_real_distribution<scalar> dist_cr(0.0, 1.0);
     const size_t n_solutions = 4;
     std::vector<size_t> index(n_solutions);
+    std::cout   << "------- DDMS EVOLUTION -------" << std::endl;
     if(this->m_debug >= debug_level::Low) {
         std::cout << "Current Iteration: " << this->current_criteria.iterations
                   << " - Evaluations: " << this->current_criteria.evaluations
@@ -236,7 +237,6 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 
         if (rank == POOL){
 
-            int exit_or_continue; // check if pool receives a break message right after a migration request 
 			long nfe_island;
 			MPI_Status myStatus;
 			MPI_Irecv(&rank_source, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myRequest);
@@ -261,6 +261,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout << "[" << rank << "]" << " migracao solicitada por [" << rank_source << "]" << std::endl;
                 }
+                // check if pool receives a break message right after a migration request 
                 MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myStatus);
                 if (myStatus.MPI_TAG == 0 && myStatus.MPI_SOURCE == rank_source)
                 {
@@ -358,8 +359,8 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
             need_rediversify(sub_problem);
             /* AEPD_TEDA */            
 
-            /* DO MIGRATION */
-            if (enhan_stats.zg == 1 || rand_0_1() < 0.05){
+            /* DO MIGRATION:  || rand_0_1() < 0.05 */
+            if (enhan_stats.zg == 1){
                 
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout << "[" << rank << "] vou pedir para [" << POOL << "]" << std::endl;
@@ -802,6 +803,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
     std::uniform_real_distribution<scalar> dist_cr(0.0, 1.0);
     const size_t n_solutions = 4;
     std::vector<size_t> index(n_solutions);
+    std::cout   << "------- FIXED_PROBA EVOLUTION -------" << std::endl;
     if(this->m_debug >= debug_level::Low) {
         std::cout << "Current Iteration: " << this->current_criteria.iterations
                   << " - Evaluations: " << this->current_criteria.evaluations

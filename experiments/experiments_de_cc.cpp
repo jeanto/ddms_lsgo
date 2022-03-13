@@ -157,11 +157,11 @@ int main() {
                 }
                 criteria current_, stop_;
                 options options_ = options::defaults();
-                stop_.evaluations = 2.02e6;
+                stop_.evaluations = 2e5; // stop_.evaluations = 3e6;
                 stop_.iterations = LONG_MAX;
                 stop_.fx_is_know = true;
-                //stop_.error_fx_best = 0.0;
-                stop_.error_fx_best = 1e-8;
+                stop_.error_fx_best = 0.0;
+                //stop_.error_fx_best = 1e-8;
                 stop_.fx_best = 0.0;
 
                 switch (id_function) {
@@ -240,6 +240,7 @@ int main() {
                         distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
                         solver.set_migration_method(migration_method::DDMS);
+                        //solver.set_migration_method(migration_method::FIXED);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
