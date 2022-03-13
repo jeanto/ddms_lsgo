@@ -217,7 +217,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     int flag_send   = 0;	// flag to check send of request
     int flag_recv   = 0;	// flat to check receive of request
 	MPI_Request exitRequest = MPI_REQUEST_NULL;
-    MPI_Request myRequestSend[3];
+    MPI_Request myRequestSend[2];
     MPI_Request myRequest;
 
     //MPI_Barrier(MPI_COMM_WORLD);
@@ -235,6 +235,8 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
         ind.resize(dimension);
 
         if (rank == POOL){
+
+            int exit_or_continue; // check if pool receives a break message right after a migration request 
 			long nfe_island;
 			MPI_Status myStatus;
 			MPI_Irecv(&rank_source, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myRequest);
@@ -259,20 +261,25 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout << "[" << rank << "]" << " migracao solicitada por [" << rank_source << "]" << std::endl;
                 }
-				MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myStatus);
+                if (myStatus.MPI_TAG == 0 && myStatus.MPI_SOURCE == rank_source)
+                {
+                    MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    //MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    std::cout << "[teda1]" << std::endl;
+                    // TEDA Cloud
+                    ind_received.x = ind;
+                    teda_cloud(ind_received, problem);
+                    std::cout << "[teda2]" << std::endl;
 
-                // TEDA Cloud
-				ind_received.x = ind;
-				teda_cloud(ind_received, problem);
+                    //MPI_Send(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
+                    //size_t id_send = rand() % cloud_inds.size();
+                    MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
 
-                //MPI_Send(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
-                size_t id_send = rand() % cloud_inds.size();
-				MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
-
-                if(this->m_debug >= debug_level::VeryLow) {
-                    std::cout 	<< "[" << rank << "] enviou um individuo para : [" << rank_source 
-                    		<< "]" << "[" << current_criteria.evaluations << "]" << std::endl;
+                    if(this->m_debug >= debug_level::VeryLow) {
+                        std::cout 	<< "[" << rank << "] enviou um individuo para : [" << rank_source 
+                                << "]" << "[" << current_criteria.evaluations << "]" << std::endl;
+                    }
                 }
             }
         }
@@ -352,7 +359,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
             /* AEPD_TEDA */            
 
             /* DO MIGRATION */
-            if (enhan_stats.zg == 1){
+            if (enhan_stats.zg == 1 || rand_0_1() < 0.05){
                 
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout << "[" << rank << "] vou pedir para [" << POOL << "]" << std::endl;
@@ -361,7 +368,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 				int tag_send = 0;
 				MPI_Isend(&rank, 1, MPI_INT, POOL, tag_send, MPI_COMM_WORLD, &myRequestSend[0]);
 				MPI_Isend(best_solution.data(), dimension, MPI_DOUBLE, POOL, tag_send, MPI_COMM_WORLD, &myRequestSend[1]);
-				MPI_Isend(&current_criteria.evaluations, 1, MPI_LONG, POOL, tag_send, MPI_COMM_WORLD, &myRequestSend[2]);
+				//MPI_Isend(&current_criteria.evaluations, 1, MPI_LONG, POOL, tag_send, MPI_COMM_WORLD, &myRequestSend[2]);
 
 				int exit_signal = 0;
                 flag_send = 0;
@@ -375,7 +382,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 						break;
 					}
 
-					MPI_Testall(3, myRequestSend, &flag_send, MPI_STATUS_IGNORE);
+					MPI_Testall(2, myRequestSend, &flag_send, MPI_STATUS_IGNORE);
 				}while (flag_send != 1);
 
                 // some island terminated
