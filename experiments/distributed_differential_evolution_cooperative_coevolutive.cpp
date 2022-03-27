@@ -44,7 +44,7 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
 
         // Se subproblema eh igual a 1, chama evolution()
         //evolution(problem, index_sub_problem);
-        if(this->m_migration_method != migration_method::DDMS){
+        if(this->m_migration_method == migration_method::FIXED_BEST || this->m_migration_method == migration_method::PROBA_BEST){
             fixed_proba_evolution(problem, index_sub_problem);
         } else {
             ddms_evolution(problem, index_sub_problem);
@@ -267,15 +267,25 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                 {
                     MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     //MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    std::cout << "[teda1]" << std::endl;
-                    // TEDA Cloud
-                    ind_received.x = ind;
-                    teda_cloud(ind_received, problem);
-                    std::cout << "[teda2]" << std::endl;
 
-                    //MPI_Send(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
-                    //size_t id_send = rand() % cloud_inds.size();
-                    MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
+                    // DDMS_TEDA
+                    if (this->m_migration_method == migration_method::DDMS_TEDA){
+                        std::cout << "[teda1]" << std::endl;
+                        // TEDA Cloud
+                        ind_received.x = ind;
+                        teda_cloud(ind_received, problem);
+                        std::cout << "[teda2]" << std::endl;
+
+                        //size_t id_send = rand() % cloud_inds.size();
+                        MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
+                    }
+                    // DDMS_BEST
+                    else if(this->m_migration_method == migration_method::DDMS_BEST){
+                        scalar fx = problem.value(ind);
+                        ++this->current_criteria.evaluations;
+                        update_best_solution(ind, fx, rank);
+                        MPI_Send(best_solution.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
+                    }
 
                     if(this->m_debug >= debug_level::VeryLow) {
                         std::cout 	<< "[" << rank << "] enviou um individuo para : [" << rank_source 
@@ -351,13 +361,28 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                 break;
             }
 
-            /* AEPD_TEDA */
-            // REVISAR PARA ATENDER SUBPROBLEMAS E NÃO PRECISAR CALCULAR ISSO EM CADA ITERAÇÃO
-            // check convergence
-            convergence(sub_problem);
-            stagnation(sub_problem);
-            need_rediversify(sub_problem);
-            /* AEPD_TEDA */            
+            // FIXED_TEDA
+            if(this->m_migration_method == migration_method::FIXED_TEDA) {
+                if (current_criteria.iterations % (FIXED_INTERVAL+rank) == 0) {
+                    enhan_stats.zg = 1;
+                } else {
+                    enhan_stats.zg = 0;
+                }
+            } 
+            // FIXED_BEST
+            else if (this->m_migration_method == migration_method::PROBA_TEDA) {
+                if (rand_0_1() < PROBA_INTERVAL){
+                    enhan_stats.zg = 1;
+                } else {
+                    enhan_stats.zg = 0;
+                }
+            }
+            // DDMS_TEDA ou DDMS_BEST
+            else if (this->m_migration_method == migration_method::DDMS_TEDA || this->m_migration_method == migration_method::DDMS_BEST) {
+                convergence(sub_problem);       // check convergence
+                stagnation(sub_problem);        // check stagnation
+                need_rediversify(sub_problem);  // check rules
+            }
 
             /* DO MIGRATION:  || rand_0_1() < 0.05 */
             if (enhan_stats.zg == 1){
@@ -869,14 +894,14 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
         // send to the neighbor island (forward) a migration code
         // 1 -> it will be made a migration; 0 -> otherwise
         int migration_code_recv = 0; 
-        if(this->m_migration_method == migration_method::FIXED) {
+        if(this->m_migration_method == migration_method::FIXED_BEST) {
             if (current_criteria.iterations % (FIXED_INTERVAL+rank) == 0) {
                 migration_code_recv = 1;
             } else {
                 migration_code_recv = 0;
             }
         }
-        else if (this->m_migration_method == migration_method::PROBA) {
+        else if (this->m_migration_method == migration_method::PROBA_BEST) {
             if (rand_0_1() < PROBA_INTERVAL){
                 migration_code_recv = 1;
             } else {

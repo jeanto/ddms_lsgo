@@ -13,7 +13,7 @@ namespace decompose {
             status m_status = status::NotStarted;
             stats m_stats;
             debug_level m_debug = debug_level::None;
-            migration_method m_migration_method = migration_method::DDMS;
+            migration_method m_migration_method = migration_method::DDMS_TEDA;
 
         public:
             virtual ~solver() = default;
