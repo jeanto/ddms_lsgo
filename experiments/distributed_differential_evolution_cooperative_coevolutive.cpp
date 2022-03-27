@@ -471,6 +471,10 @@ std::vector<scalar> distributed_differential_evolution_cooperative_coevolutive::
     return this->best_solution;
 }
 
+int distributed_differential_evolution_cooperative_coevolutive::get_rank() const{
+    return this->rank;
+}
+
 scalar distributed_differential_evolution_cooperative_coevolutive::rand_0_1() {
 	scalar r = static_cast <scalar> (rand()) / static_cast <scalar> (RAND_MAX);
 	return r;

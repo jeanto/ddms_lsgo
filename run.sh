@@ -50,19 +50,37 @@ else
 	run = "$(seq 1 "$3")"
 fi
 
+# strategies
+# 0 - DDMS_TEDA 
+# 1 = FIXED_BEST
+# 2 = PROBA_BEST
+# 3 = FIXED_TEDA
+# 4 = PROBA_TEDA
+# 5 = DDMS_BEST
+if [ -z "$4" ]
+  then
+    met = (0,1,2,3,4,5)
+else
+	met = "$4"
+fi
+
+
 
 if [ $islands = '-h' ]
 	then
-		echo "./run arg1 arg2 arg3"
+		echo "./run arg1 arg2 arg3 arg4"
 		echo "arg1: Number of islands."
 		echo "arg2: Function: benchmark function to be solved. Valid values are: 1-15."
 		echo "arg3: Number of runs: number of times that function is called." 
+		echo "arg6: Migration strategy: Valid values are: 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST."
 
 else
-	# call main function with mpirun
-	echo "number of islands: $islands; function: $fun; number of runs: $runi;" 
-	cd build
-	make
-	cd experiments
-	mpirun --use-hwthread-cpus -np $islands experiments_de_cc $fun $run
+	for meti in $met; do
+		# call main function with mpirun
+		echo "number of islands: $islands; function: $fun; number of runs: $runi; method: $meti" 
+		cd build
+		make
+		cd experiments
+		mpirun --use-hwthread-cpus -np $islands experiments_de_cc $fun $run $meti
+	done
 fi

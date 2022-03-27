@@ -121,34 +121,35 @@ class read_files{
         }
 };
 
-void save_results(const string &id_version, size_t id_func, size_t id_rep, vector<scalar> &x, const scalar fx){
+void save_results(const string &id_version, size_t id_func, size_t id_rep, vector<scalar> &x, const scalar fx, int island){
     ofstream file_results;
     ofstream file_solutions;
     file_results.open(id_version + ".txt", std::ofstream::app);
-    file_results << id_version << "; " << id_func << "; " << id_rep << "; 3e6; " << setprecision(20) << fx << endl;
+    file_results << id_version << "; " << island << "; " << id_func << "; " << id_rep << "; 3e6; " << setprecision(20) << fx << endl;
     file_results.close();
-    file_solutions.open(id_version + "_solutions.txt", std::ofstream::app);
-    file_solutions << id_version << "; " << "Func: " << id_func << "; Rep: " << id_rep << "; ";
-    for(scalar i : x){
-        file_solutions << i << "; ";
-    }
-    file_solutions << endl;
-    file_solutions.close();
+    // file_solutions.open(id_version + "_solutions.txt", std::ofstream::app);
+    // file_solutions << id_version << "; " << "Func: " << id_func << "; Rep: " << id_rep << "; ";
+    // for(scalar i : x){
+    //     file_solutions << i << "; ";
+    // }
+    // file_solutions << endl;
+    // file_solutions.close();
 }
 
 int main(int argc, char** argv) {
     const size_t max_id_function = atoi(argv[1]);   // number of bench function
-    //const size_t max_id_function = 4;             // 15;
     const size_t max_rep = atoi(argv[2]);           // 30;
-    string methods[] = {"DG"};
-    //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
+    string methods[] = {"DG"};                      //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
+    
+    // get method
+    const size_t algo = atoi(argv[3]);
 
     //for(size_t id_function = 1; id_function <= max_id_function; id_function++){
     for(size_t id_function = max_id_function; id_function <= max_id_function; id_function++){
         for(const auto & method : methods){
             for(size_t i_rep = 1; i_rep <= max_rep; i_rep++) {
 
-                string results_file = "results_" + method;
+                string results_file = "results_" + method + std::to_string(algo);
                 size_t dimension;
                 scalar lower_bound, upper_bound;
                 if (id_function == 13 || id_function == 14) {
@@ -186,7 +187,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 2: {
@@ -205,7 +206,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 3: {
@@ -224,7 +225,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 4: {
@@ -240,13 +241,18 @@ int main(int argc, char** argv) {
                         //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
-                        solver.set_migration_method(migration_method::DDMS_TEDA);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+                        //solver.set_migration_method(migration_method::DDMS_TEDA);
                         //solver.set_migration_method(migration_method::FIXED);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, island);
                         break;
                     }
                     case 5: {
@@ -265,7 +271,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 6: {
@@ -284,7 +290,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 7: {
@@ -303,7 +309,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 8: {
@@ -322,7 +328,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 9: {
@@ -341,7 +347,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 10: {
@@ -360,7 +366,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 11: {
@@ -379,7 +385,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 12: {
@@ -398,7 +404,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 13: {
@@ -417,7 +423,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 14: {
@@ -436,7 +442,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     case 15: {
@@ -455,7 +461,7 @@ int main(int argc, char** argv) {
                         x0 = solver.get_best_solution();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
                         break;
                     }
                     default: {

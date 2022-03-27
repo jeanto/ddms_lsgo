@@ -44,6 +44,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         void evolution(optimization_problem &problem, size_t index_sub_problem);
         void ddms_evolution(optimization_problem &problem, size_t index_sub_problem);
         void fixed_proba_evolution(optimization_problem &problem, size_t index_sub_problem);
+        int get_rank() const;
 
     // node struct
     struct node {
