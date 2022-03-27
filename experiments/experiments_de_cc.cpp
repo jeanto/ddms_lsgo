@@ -142,6 +142,7 @@ int main(int argc, char** argv) {
     string methods[] = {"DG"};                      //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
     
     // get method
+    // 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST.
     const size_t algo = atoi(argv[3]);
 
     //for(size_t id_function = 1; id_function <= max_id_function; id_function++){
@@ -185,9 +186,10 @@ int main(int argc, char** argv) {
                         solver.set_migration_method(migration_method::FIXED_BEST);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(results_file, id_function, i_rep, x0, fx_best, 0);
+                        save_results(results_file, id_function, i_rep, x0, fx_best, island);
                         break;
                     }
                     case 2: {
@@ -240,7 +242,7 @@ int main(int argc, char** argv) {
                         vector<scalar> x0(dimension, 0.0);
                         //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
-                        solver.set_debug(debug_level::Low);
+                        solver.set_debug(debug_level::None);
 
                         // set method
                         migration_method method_cast = static_cast<migration_method>(algo);

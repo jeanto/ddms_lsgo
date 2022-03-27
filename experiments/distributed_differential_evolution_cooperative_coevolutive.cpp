@@ -12,7 +12,7 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
     generate_evaluate_init_population(problem);
     const long max_evaluation = this->stop_criteria.evaluations;
     bool is_known_problem_structure = problem.is_known_problem_structure();
-    if(m_debug >= debug_level::Low){
+    if(m_debug >= debug_level::VeryLow){
         std::cout << "Solver Initialization ..." << std::endl;
         std::cout << "Iteration: " << current_criteria.iterations
                   << " - Evaluations: " << current_criteria.evaluations
@@ -62,6 +62,15 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
                     << " #Fx: " << fx_best_solution
                     << " #Gain: " << gain 
                     << " #Rank: " << rank << std::endl;
+        }
+        else{
+            scalar perc_exec = double(current_criteria.evaluations / stop_criteria.evaluations);
+            std::cout << "%: " << std::setprecision(5)
+                    << perc_exec << "%"
+                    << " #Eval: " << current_criteria.evaluations << " - " << stop_criteria.evaluations
+                    << " #Fx: " << fx_best_solution
+                    << " #Gain: " << gain 
+                    << " #Rank: " << rank << std::endl;            
         }
         status_ = check_convergence(stop_criteria, current_criteria);
 
@@ -268,19 +277,19 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                     MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     //MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                    // DDMS_TEDA
-                    if (this->m_migration_method == migration_method::DDMS_TEDA){
-                        std::cout << "[teda1]" << std::endl;
+                    // 0: DDMS_TEDA, 3: FIXED_TEDA, 4: PROBA_TEDA
+                    if (this->m_migration_method != migration_method::DDMS_BEST){
+                        //std::cout << "[teda1]" << std::endl;
                         // TEDA Cloud
                         ind_received.x = ind;
                         teda_cloud(ind_received, problem);
-                        std::cout << "[teda2]" << std::endl;
+                        //std::cout << "[teda2]" << std::endl;
 
                         //size_t id_send = rand() % cloud_inds.size();
                         MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
                     }
                     // DDMS_BEST
-                    else if(this->m_migration_method == migration_method::DDMS_BEST){
+                    else {
                         scalar fx = problem.value(ind);
                         ++this->current_criteria.evaluations;
                         update_best_solution(ind, fx, rank);
