@@ -64,7 +64,7 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
                     << " #Rank: " << rank << std::endl;
         }
         else{
-            scalar perc_exec = double(current_criteria.evaluations / stop_criteria.evaluations);
+            scalar perc_exec = double(current_criteria.evaluations) / double(stop_criteria.evaluations);
             std::cout << "%: " << std::setprecision(5)
                     << perc_exec << "%"
                     << " #Eval: " << current_criteria.evaluations << " - " << stop_criteria.evaluations
@@ -214,7 +214,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     std::uniform_real_distribution<scalar> dist_cr(0.0, 1.0);
     const size_t n_solutions = 4;
     std::vector<size_t> index(n_solutions);
-    std::cout   << "------- DDMS EVOLUTION -------" << std::endl;
+    //std::cout   << "------- DDMS EVOLUTION -------" << std::endl;
     if(this->m_debug >= debug_level::Low) {
         std::cout << "Current Iteration: " << this->current_criteria.iterations
                   << " - Evaluations: " << this->current_criteria.evaluations
@@ -841,7 +841,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
     std::uniform_real_distribution<scalar> dist_cr(0.0, 1.0);
     const size_t n_solutions = 4;
     std::vector<size_t> index(n_solutions);
-    std::cout   << "------- FIXED_PROBA EVOLUTION -------" << std::endl;
+    //std::cout   << "------- FIXED_PROBA EVOLUTION -------" << std::endl;
     if(this->m_debug >= debug_level::Low) {
         std::cout << "Current Iteration: " << this->current_criteria.iterations
                   << " - Evaluations: " << this->current_criteria.evaluations

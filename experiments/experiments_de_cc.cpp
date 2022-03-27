@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
                 }
                 criteria current_, stop_;
                 options options_ = options::defaults();
-                stop_.evaluations = 2e5; // stop_.evaluations = 3e6;
+                stop_.evaluations = 3e6;// 2e5; // stop_.evaluations = 3e6;
                 stop_.iterations = LONG_MAX;
                 stop_.fx_is_know = true;
                 stop_.error_fx_best = 0.0;
