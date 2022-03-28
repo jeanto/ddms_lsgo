@@ -245,7 +245,6 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
         ind.resize(dimension);
 
         if (rank == POOL){
-
 			long nfe_island;
 			MPI_Status myStatus;
 			MPI_Irecv(&rank_source, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myRequest);
@@ -270,36 +269,55 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                 if(this->m_debug >= debug_level::VeryLow) {
 				    std::cout << "[" << rank << "]" << " migracao solicitada por [" << rank_source << "]" << std::endl;
                 }
-                // check if pool receives a break message right after a migration request 
-                MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myStatus);
-                if (myStatus.MPI_TAG == 0 && myStatus.MPI_SOURCE == rank_source)
-                {
-                    MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    //MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                    // 0: DDMS_TEDA, 3: FIXED_TEDA, 4: PROBA_TEDA
-                    if (this->m_migration_method != migration_method::DDMS_BEST){
-                        //std::cout << "[teda1]" << std::endl;
-                        // TEDA Cloud
-                        ind_received.x = ind;
-                        teda_cloud(ind_received, problem);
-                        //std::cout << "[teda2]" << std::endl;
+                MPI_Recv(ind.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                        //size_t id_send = rand() % cloud_inds.size();
-                        MPI_Send(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
-                    }
-                    // DDMS_BEST
-                    else {
-                        scalar fx = problem.value(ind);
-                        ++this->current_criteria.evaluations;
-                        update_best_solution(ind, fx, rank);
-                        MPI_Send(best_solution.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
-                    }
+                //MPI_Irecv(&rank_source, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &myRequest);
+                //MPI_Recv(&nfe_island, 1, MPI_LONG, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                    if(this->m_debug >= debug_level::VeryLow) {
-                        std::cout 	<< "[" << rank << "] enviou um individuo para : [" << rank_source 
-                                << "]" << "[" << current_criteria.evaluations << "]" << std::endl;
-                    }
+                // 0: DDMS_TEDA, 3: FIXED_TEDA, 4: PROBA_TEDA
+                if (this->m_migration_method != migration_method::DDMS_BEST){
+                    //std::cout << "[teda1]" << std::endl;
+                    // TEDA Cloud
+                    ind_received.x = ind;
+                    teda_cloud(ind_received, problem);
+                    //std::cout << "[teda2]" << std::endl;
+
+                    //size_t id_send = rand() % cloud_inds.size();
+                    MPI_Isend(cloud_inds[0].x.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, &myRequest);
+
+                    int send_ok = 0;
+                    do{
+                        MPI_Test(&myRequest, &send_ok, MPI_STATUS_IGNORE);
+                        if (!send_ok){
+                            MPI_Cancel(&myRequest);
+                            MPI_Request_free(&myRequest);
+                            break;
+                        }
+                    }while (send_ok != 1);
+                }
+                // DDMS_BEST
+                else {
+                    scalar fx = problem.value(ind);
+                    ++this->current_criteria.evaluations;
+                    update_best_solution(ind, fx, rank);
+                    //MPI_Send(best_solution.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD);
+
+                    MPI_Isend(best_solution.data(), dimension, MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, &myRequest);
+                    int send_ok = 0;
+                    do{
+                        MPI_Test(&myRequest, &send_ok, MPI_STATUS_IGNORE);
+                        if (!send_ok){
+                            MPI_Cancel(&myRequest);
+                            MPI_Request_free(&myRequest);
+                            break;
+                        }
+                    }while (send_ok != 1);
+                }
+
+                if(this->m_debug >= debug_level::VeryLow) {
+                    std::cout 	<< "[" << rank << "] enviou um individuo para : [" << rank_source 
+                            << "]" << "[" << current_criteria.evaluations << "]" << std::endl;
                 }
             }
         }
