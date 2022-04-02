@@ -45,9 +45,14 @@ fi
 # number of runs
 if [ -z "$3" ]
   then
-    run="$(seq 1 1)"
+	run="$(seq 1 30)"
 else
-		run="$(seq 1 "$3")"
+  if [ -z "$4" ]
+	then
+    	run="$(seq "$3" 30)"
+  else
+		run="$(seq "$3" "$4")"
+  fi
 fi
 
 # strategies
@@ -57,22 +62,23 @@ fi
 # 3 = FIXED_TEDA
 # 4 = PROBA_TEDA
 # 5 = DDMS_BEST
-if [ -z "$4" ]
+if [ -z "$5" ]
   then
     met=(0,1,2,3,4,5)
 else
-		met="$4"
+		met="$5"
 fi
 
 
 
 if [ $islands = '-h' ]
 	then
-		echo "./run arg1 arg2 arg3"
+		echo "./run arg1 arg2 arg3 arg4 arg5"
 		echo "arg1: Number of islands."
 		echo "arg2: Function: benchmark function to be solved. Valid values are: 1-15."
-		echo "arg3: Number of runs: number of times that function is called."
-		echo "arg4: Method: 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST."
+		echo "arg3: Runs: initial."
+		echo "arg4: Runs: final."
+		echo "arg5: Method: 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST."
 
 else
 	for meti in $met; do
