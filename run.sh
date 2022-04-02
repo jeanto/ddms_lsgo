@@ -81,14 +81,14 @@ if [ $islands = '-h' ]
 		echo "arg5: Method: 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST."
 
 else
+	cd build
+	make
+	cd experiments
 	for meti in $met; do
 		for runi in $run; do
 			# call main function with mpirun
-			echo "number of islands: $islands; function: $fun; run: $runi; method: $meti" 
-			cd build
-			make
-			cd experiments
-			mpirun --use-hwthread-cpus -np $islands experiments_de_cc $fun $meti
+			echo "number of islands: $islands; function: $fun; method: $meti; run: $runi" 
+			mpirun --use-hwthread-cpus -np $islands experiments_de_cc $fun $meti $runi
 		done
 	done
 fi
