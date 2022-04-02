@@ -139,12 +139,10 @@ void save_results(const string &id_version, size_t id_func, size_t id_rep, vecto
 
 int main(int argc, char** argv) {
     const size_t max_id_function = atoi(argv[1]);   // number of bench function
-    const size_t max_rep = atoi(argv[2]);           // 30;
-    string methods[] = {"DG"};                      //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
+    const size_t algo = atoi(argv[2]); // 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST.
     
-    // get method
-    // 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST.
-    const size_t algo = atoi(argv[3]);
+    const size_t max_rep = 1;   // 30;
+    string methods[] = {"DG"};  //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
 
     //for(size_t id_function = 1; id_function <= max_id_function; id_function++){
     for(size_t id_function = max_id_function; id_function <= max_id_function; id_function++){

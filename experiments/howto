@@ -2,4 +2,5 @@ cd build
 cmake ../
 make
 cd experiments/
-mpirun --use-hwthread-cpus -np 4 experiments_de_cc 4 1 0
+mpirun --use-hwthread-cpus -np 4 experiments_de_cc 4 1
+mpirun --use-hwthread-cpus -np 5 experiments_de_cc 4 0
