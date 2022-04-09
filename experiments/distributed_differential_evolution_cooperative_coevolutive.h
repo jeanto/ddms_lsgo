@@ -45,6 +45,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         void ddms_evolution(optimization_problem &problem, size_t index_sub_problem);
         void fixed_proba_evolution(optimization_problem &problem, size_t index_sub_problem);
         int get_rank() const;
+        std::string get_method(migration_method m);
 
     // node struct
     struct node {
@@ -121,7 +122,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
 
     public:
         void convergence(std::set<size_t> &sub_problem);
-        void stagnation(std::set<size_t> &sub_problem);
+        void stagnation(std::set<size_t> &sub_problem, size_t isub);
         void need_rediversify(std::set<size_t> &sub_problem);
         scalar rand_0_1();
         void teda_cloud(node ind_received, optimization_problem &problem);

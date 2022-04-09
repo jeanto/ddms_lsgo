@@ -301,13 +301,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
-                        solver.set_debug(debug_level::Low);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        solver.set_debug(debug_level::None);                        
+                        
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 7: {
@@ -320,13 +331,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 8: {
@@ -339,13 +361,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+                        
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 9: {
@@ -358,13 +391,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 10: {
@@ -377,13 +421,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 11: {
@@ -396,13 +451,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 12: {
@@ -415,13 +481,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 13: {
@@ -434,13 +511,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 14: {
@@ -453,13 +541,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     case 15: {
@@ -472,13 +571,24 @@ int main(int argc, char** argv) {
                         cout << endl << endl;
 
                         vector<scalar> x0(dimension, 0.0);
-                        differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::Low);
+
+                        // set method
+                        migration_method method_cast = static_cast<migration_method>(algo);
+                        solver.set_migration_method(method_cast);
+
+                        const clock_t begin_time = clock();
                         solver.minimize(f, x0);
+                        const clock_t end_time  = clock();
+                        scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
+
                         x0 = solver.get_best_solution();
+                        int island = solver.get_rank();
                         unsigned long i_last = solver.get_stats().get_history().size() - 1;
                         scalar fx_best = solver.get_stats().get_history()[i_last].fx;
-                        save_results(method_file, id_function, idx, x0, fx_best, 0, 0);
+                        save_results(method_file, id_function, idx, x0, fx_best, island, timei);
                         break;
                     }
                     default: {

@@ -55,17 +55,9 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
         gain = gain - fx_best_solution;
         this->stop_criteria.evaluations = max_evaluation;
         index_sub_problem = (index_sub_problem+1) % problem.get_problem_structure().size();
-        if(m_debug >= debug_level::VeryLow){
-            std::cout << "#It.: " << current_criteria.iterations
-                    << " #Eval: " << current_criteria.evaluations
-                    << " #Id Subp: " << index_sub_problem
-                    << " #Fx: " << fx_best_solution
-                    << " #Gain: " << gain 
-                    << " #Rank: " << rank << std::endl;
-        }
-        else{
+        if(m_debug >= debug_level::None){
             scalar perc_exec = double(current_criteria.evaluations) / double(stop_criteria.evaluations);
-            std::cout << "%: " << std::setprecision(5)
+            std::cout << get_method(this->m_migration_method) << "%: " << std::setprecision(5)
                     << perc_exec << "%"
                     << " #Eval: " << current_criteria.evaluations << " - " << stop_criteria.evaluations
                     << " #Fx: " << fx_best_solution
@@ -183,6 +175,30 @@ scalar distributed_differential_evolution_cooperative_coevolutive::get_bounds(sc
     }
 }
 
+// 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST
+std::string distributed_differential_evolution_cooperative_coevolutive::get_method(migration_method m){
+    std::string met;
+    if(m == migration_method::DDMS_TEDA){
+        met = "[ DDMS_TEDA ] ";
+    }   
+    else if(m == migration_method::FIXED_BEST){
+        met = "[ FIXED_BEST ] ";
+    }
+    else if(m == migration_method::PROBA_BEST){
+        met = "[ PROBA_BEST ] ";
+    }
+    else if(m == migration_method::FIXED_TEDA){
+        met = "[ FIXED_TEDA ] ";
+    }
+    else if(m == migration_method::PROBA_TEDA){
+        met = "[ PROBA_TEDA ] ";
+    }
+    else if(m == migration_method::DDMS_BEST){
+        met = "[ DDMS_BEST ] ";
+    }
+    return met;
+}
+
 void distributed_differential_evolution_cooperative_coevolutive::differential_mutation_operator(
     optimization_problem &problem, size_t i_ind, size_t i_x, std::vector<size_t> &index){
     std::uniform_real_distribution<scalar> dist(0.5, 1.0);
@@ -214,7 +230,8 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     std::uniform_real_distribution<scalar> dist_cr(0.0, 1.0);
     const size_t n_solutions = 4;
     std::vector<size_t> index(n_solutions);
-    //std::cout   << "------- DDMS EVOLUTION -------" << std::endl;
+
+    size_t isub = 0; // keep number of iterations on subproblem
     if(this->m_debug >= debug_level::Low) {
         std::cout << "Current Iteration: " << this->current_criteria.iterations
                   << " - Evaluations: " << this->current_criteria.evaluations
@@ -239,6 +256,8 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 
     this->m_status = check_convergence(this->stop_criteria, this->current_criteria);
     while(this->m_status == status::Continue){
+        
+        isub++;                     // increment number of iterations
 
         int rank_source;            // rank      from the target island
         std::vector<double> ind; 	// individuo from the target island
@@ -405,10 +424,11 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
                 }
             }
             // DDMS_TEDA ou DDMS_BEST
-            else if (this->m_migration_method == migration_method::DDMS_TEDA || this->m_migration_method == migration_method::DDMS_BEST) {
+            else {
                 convergence(sub_problem);       // check convergence
-                stagnation(sub_problem);        // check stagnation
+                stagnation(sub_problem, isub);        // check stagnation
                 need_rediversify(sub_problem);  // check rules
+                enhan_stats.zg = 0;
             }
 
             /* DO MIGRATION:  || rand_0_1() < 0.05 */
@@ -580,10 +600,10 @@ void distributed_differential_evolution_cooperative_coevolutive::convergence(std
 	}
 }
 
-void distributed_differential_evolution_cooperative_coevolutive::stagnation(std::set<size_t> &sub_problem){
+void distributed_differential_evolution_cooperative_coevolutive::stagnation(std::set<size_t> &sub_problem, size_t isub){
 
     //std::cout << current_criteria.iterations << std::endl;
-	if (current_criteria.iterations == 1){
+	if (isub == 1){
 		std::vector<size_t> gamajg(sub_problem.size(), 0);
 		std::vector<size_t> lambdajg(sub_problem.size(), 0);
 		stag_stats.gamma  = gamajg;
