@@ -15,6 +15,7 @@
 #include "problems/f15_cec.h"
 #include "differential_evolution_cooperative_coevolutive.h"
 #include "distributed_differential_evolution_cooperative_coevolutive.h"
+#include "distributed_shade_cooperative_coevolutive.h"
 #include <iostream>
 #include <string>
 #include <climits>
@@ -184,7 +185,7 @@ int main(int argc, char** argv) {
                         solver.set_debug(debug_level::None);
                         //solver.set_debug(debug_level::VeryNone);
                         //solver.set_debug(debug_level::None);
-                        solver.set_migration_method(migration_method::FIXED_BEST);
+                        solver.set_migration_method(migration_method::FIXED_BEST100);
                         solver.minimize(f, x0);
                         x0 = solver.get_best_solution();
                         int island = solver.get_rank();
