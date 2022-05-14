@@ -117,8 +117,9 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         const scalar r0 = 0.001;
 
         // FIXED and PROBA params and variables
-        size_t FIXED_INTERVAL = 100;    // as Apolloni (2008, 2014), it migrates every 100 generations
-        scalar PROBA_INTERVAL = 0.05;   // probabilist migration
+        size_t FIXED_INTERVAL100 = 100;    // as Apolloni (2008, 2014), it migrates every 100 generations
+        size_t FIXED_INTERVAL50  = 50;     // as Meng (2017), it migrates every 50 generations
+        scalar PROBA_INTERVAL    = 0.05;   // probabilist migration
 
     public:
         void convergence(std::set<size_t> &sub_problem);

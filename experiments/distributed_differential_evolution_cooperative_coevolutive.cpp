@@ -44,7 +44,7 @@ void distributed_differential_evolution_cooperative_coevolutive::minimize(optimi
 
         // Se subproblema eh igual a 1, chama evolution()
         //evolution(problem, index_sub_problem);
-        if(this->m_migration_method == migration_method::FIXED_BEST || this->m_migration_method == migration_method::PROBA_BEST){
+        if(this->m_migration_method == migration_method::FIXED_BEST100 || this->m_migration_method == migration_method::FIXED_BEST50 || this->m_migration_method == migration_method::PROBA_BEST){
             fixed_proba_evolution(problem, index_sub_problem);
         } else {
             ddms_evolution(problem, index_sub_problem);
@@ -181,8 +181,11 @@ std::string distributed_differential_evolution_cooperative_coevolutive::get_meth
     if(m == migration_method::DDMS_TEDA){
         met = "[ DDMS_TEDA ] ";
     }   
-    else if(m == migration_method::FIXED_BEST){
-        met = "[ FIXED_BEST ] ";
+    else if(m == migration_method::FIXED_BEST100){
+        met = "[ FIXED_BEST100 ] ";
+    }
+    else if(m == migration_method::FIXED_BEST50){
+        met = "[ FIXED_BEST50 ] ";
     }
     else if(m == migration_method::PROBA_BEST){
         met = "[ PROBA_BEST ] ";
@@ -409,7 +412,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 
             // FIXED_TEDA
             if(this->m_migration_method == migration_method::FIXED_TEDA) {
-                if (current_criteria.iterations % (FIXED_INTERVAL+rank) == 0) {
+                if (current_criteria.iterations % (FIXED_INTERVAL100+rank) == 0) {
                     enhan_stats.zg = 1;
                 } else {
                     enhan_stats.zg = 0;
@@ -945,8 +948,15 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
         // send to the neighbor island (forward) a migration code
         // 1 -> it will be made a migration; 0 -> otherwise
         int migration_code_recv = 0; 
-        if(this->m_migration_method == migration_method::FIXED_BEST) {
-            if (current_criteria.iterations % (FIXED_INTERVAL+rank) == 0) {
+        if(this->m_migration_method == migration_method::FIXED_BEST100) {
+            if (current_criteria.iterations % (FIXED_INTERVAL100+rank) == 0) {
+                migration_code_recv = 1;
+            } else {
+                migration_code_recv = 0;
+            }
+        }
+        else if(this->m_migration_method == migration_method::FIXED_BEST50) {
+            if (current_criteria.iterations % (FIXED_INTERVAL50+rank) == 0) {
                 migration_code_recv = 1;
             } else {
                 migration_code_recv = 0;

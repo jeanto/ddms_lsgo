@@ -139,7 +139,7 @@ void save_results(const string &id_version, size_t id_func, size_t idx, vector<s
 
 int main(int argc, char** argv) {
     const size_t max_id_function = atoi(argv[1]);   // number of bench function
-    const size_t algo = atoi(argv[2]); // 0: DDMS_TEDA, 1: FIXED_BEST, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST.
+    const size_t algo = atoi(argv[2]); // 0: DDMS_TEDA, 1: FIXED_BEST100, 2: PROBA_BEST, 3: FIXED_TEDA, 4: PROBA_TEDA, 5: DDMS_BEST, 6: FIXED_BEST50.
     const size_t idx = atoi(argv[3]);
 
     const size_t max_rep = 1;   // 30;
