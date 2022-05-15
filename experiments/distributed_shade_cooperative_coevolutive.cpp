@@ -2,6 +2,9 @@
 #include <vector>
 #include <random>
 #include <iomanip>
+#include <cmath>
+#include <iostream>
+#include <algorithm>
 #include <mpi.h>
 
 distributed_shade_cooperative_coevolutive::distributed_shade_cooperative_coevolutive(criteria &current_criteria, criteria &stop_criteria, options &o) : super(current_criteria, stop_criteria, o){}
@@ -10,6 +13,7 @@ void distributed_shade_cooperative_coevolutive::minimize(optimization_problem &p
     setting_method(problem.get_dimension());
     allocate_initial_population();
     generate_evaluate_init_population(problem);
+
     const long max_evaluation = this->stop_criteria.evaluations;
     bool is_known_problem_structure = problem.is_known_problem_structure();
     if(m_debug >= debug_level::VeryLow){
@@ -119,26 +123,39 @@ void distributed_shade_cooperative_coevolutive::update_best_solution(std::vector
 void distributed_shade_cooperative_coevolutive::allocate_initial_population(){
     pop.reserve(de_size_pop);
     pop_aux.reserve(de_size_pop);
+    popr.reserve(de_size_pop);      
+    children.reserve(de_size_pop);	
+    arc_size                = (int)round(de_size_pop * arc_rate);
+    archive.NP 				= arc_size;
+    archive.arc_ind_count 	= 0;
+    archive.pop.resize(arc_size);
     for(size_t i = 0; i < de_size_pop; i++){
         std::vector<scalar> x(dimension, 0.0);
         pop.push_back(x);
         pop_aux.push_back(x);
+        for (size_t j = 0; j < dimension; j++){
+            popr[i].x.push_back(0.0);
+        }
+        popr[i].fitness = 1.0;
     }
-    fx_pop = std::vector<scalar>(de_size_pop, 1.0);
-    fx_pop_aux = std::vector<scalar>(de_size_pop, 1.0);
+    fx_pop      = std::vector<scalar>(de_size_pop, 1.0);
+    fx_pop_aux  = std::vector<scalar>(de_size_pop, 1.0);
 }
 
 void distributed_shade_cooperative_coevolutive::generate_evaluate_init_population(optimization_problem &problem){
     for(size_t i = 0; i < de_size_pop; i++){
+        popr[i].node_id = i;
         for (size_t j = 0; j < dimension; j++) {
             std::uniform_real_distribution<scalar> dist(problem.get_lower_bound()[j], problem.get_upper_bound()[j]);
                 pop[i][j] = dist(default_generator());
                 pop_aux[i][j] = pop[i][j];
+                popr[i].x.push_back(pop[i][j]);
         }
-        scalar fx = problem.value(pop[i]);
+        scalar fx       = problem.value(pop[i]);
         ++this->current_criteria.evaluations;
-        fx_pop[i] = fx;
-        fx_pop_aux[i] = fx;
+        fx_pop[i]       = fx;
+        fx_pop_aux[i]   = fx;
+        popr[i].fitness = fx;
         update_best_solution(pop[i], fx, i);
     }
 }
@@ -354,6 +371,7 @@ void distributed_shade_cooperative_coevolutive::ddms_evolution(optimization_prob
 				break;
 			}
 
+            /*
             for(size_t i = 0; i < de_size_pop; i++){
                 index[0] = i;
                 generate_random_index(index, n_solutions, 0, de_size_pop-1);
@@ -374,7 +392,15 @@ void distributed_shade_cooperative_coevolutive::ddms_evolution(optimization_prob
                     pop[i] = pop_aux[i];
                     fx_pop[i] = fx_pop_aux[i];
                 }
+                for(unsigned long j : sub_problem){
+                    popr[i].x.push_back(pop_aux[i][j]);
+                }
+                popr[i].fitness = fx_pop_aux[i];
             }
+            */
+
+            // SHADE
+            shade(problem, sub_problem);
 
             ++this->current_criteria.iterations;
             this->current_criteria.fx_best = fx_best_solution;
@@ -503,8 +529,10 @@ void distributed_shade_cooperative_coevolutive::ddms_evolution(optimization_prob
                 while (id_best_solution == id) {
                     id = rand() % de_size_pop;
                 }
-                pop[id] = ind_mig;
-                fx_pop[id] = fx_mig;
+                pop[id]             = ind_mig;
+                fx_pop[id]          = fx_mig;
+                popr[id].x          = ind_mig;
+                popr[id].fitness    = fx_mig;
 
                 update_best_solution(ind_mig, fx_mig, id);               
             }
@@ -906,14 +934,12 @@ void distributed_shade_cooperative_coevolutive::fixed_proba_evolution(optimizati
     MPI_Barrier(MPI_COMM_WORLD);
 
     // islands keeps a broadcasting openned to receive signal to exit
-	//if (rank != POOL){
-	//MPI_Irecv(&exit_item, 1, MPI_INT, POOL, 3, MPI_COMM_WORLD, &exitRequest);
     MPI_Irecv(&is_to_exit_subproblem, 1, MPI_INT, MPI_ANY_SOURCE, 4, MPI_COMM_WORLD, &exitRequest);
-	//}
 
     this->m_status = check_convergence(this->stop_criteria, this->current_criteria);
     while(this->m_status == status::Continue){
 
+        /*
         for(size_t i = 0; i < de_size_pop; i++){
             index[0] = i;
             generate_random_index(index, n_solutions, 0, de_size_pop-1);
@@ -933,8 +959,15 @@ void distributed_shade_cooperative_coevolutive::fixed_proba_evolution(optimizati
             if(fx_pop_aux[i] < fx_pop[i]){
                 pop[i] = pop_aux[i];
                 fx_pop[i] = fx_pop_aux[i];
+                
+                for(unsigned long j : sub_problem){
+                    popr[i].x.push_back(pop_aux[i][j]);
+                }
+                popr[i].fitness = fx_pop_aux[i];
             }
         }
+        */
+        shade(problem, sub_problem);
 
         ++this->current_criteria.iterations;
         this->current_criteria.fx_best = fx_best_solution;
@@ -1009,8 +1042,10 @@ void distributed_shade_cooperative_coevolutive::fixed_proba_evolution(optimizati
             while (id_best_solution == id) {
                 id = rand() % de_size_pop;
             }
-            pop[id] = ind_mig;
-            fx_pop[id] = fx_mig;
+            pop[id]             = ind_mig;
+            fx_pop[id]          = fx_mig;
+            popr[id].x          = ind_mig;
+            popr[id].fitness    = fx_mig;
 
             update_best_solution(ind_mig, fx_mig, id);    
         }
@@ -1055,32 +1090,89 @@ void distributed_shade_cooperative_coevolutive::fixed_proba_evolution(optimizati
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
-/*
-void distributed_shade_cooperative_coevolutive::shade(optimization_problem &problem, size_t index_sub_problem, std::set<size_t> &sub_problem){
+scalar distributed_shade_cooperative_coevolutive::gauss(scalar mu, scalar sigma){
+    return mu + sigma * std::sqrt(-2.0 * std::log(rand_0_1())) * std::sin(2.0 * PI * rand_0_1());
+}
+
+scalar distributed_shade_cooperative_coevolutive::cauchy_g(scalar mu, scalar gamma) {
+    return mu + gamma * std::tan(PI*(rand_0_1() - 0.5));
+}
+
+void distributed_shade_cooperative_coevolutive::operateCurrentToPBest1BinWithArchive(int &target, int &p_best_individual, 
+        scalar &scaling_factor, scalar &cross_rate, std::set<size_t> &sub_problem, 
+        std::vector<scalar> lower_bound, std::vector<scalar> upper_bound) {
+    
+    node child = popr[target];
+    int r1, r2;
+    
+    do {
+        r1 = rand() % de_size_pop;
+    } while (r1 == target);
+    do {
+        r2 = rand() % (de_size_pop + archive.arc_ind_count);
+    } while ((r2 == target) || (r2 == r1));
+
+    auto min            = sub_problem.begin();
+    auto max            = sub_problem.end();
+    max--;
+    int random_variable  = rand() % (*max - *min + 1) + *min;
+    
+    if (r2 >= de_size_pop) {
+        r2 -= de_size_pop;
+
+        for(unsigned long j : sub_problem){
+            if ((rand_0_1() < cross_rate) || (j == random_variable)) {
+                child.x[j] = popr[target].x[j] + scaling_factor * (popr[p_best_individual].x[j] - 
+                        popr[target].x[j]) + scaling_factor * (popr[r1].x[j] - archive.pop[r2].x[j]);
+            }
+            else {
+                child.x[j] = popr[target].x[j];
+            }
+        }
+    }
+    else {
+        for(unsigned long j : sub_problem){
+            if ((rand_0_1() < cross_rate) || (j == random_variable)) {
+                child.x[j] = popr[target].x[j] + scaling_factor * (popr[p_best_individual].x[j] - 
+                        popr[target].x[j]) + scaling_factor * (popr[r1].x[j] - popr[r2].x[j]);
+            }
+            else {
+                child.x[j] = popr[target].x[j];
+            }
+        }
+    }
+
+    //If the mutant vector violates bounds, the bound handling method is applied
+    for(unsigned long j : sub_problem){
+        child.x[j] = get_bounds(popr[target].x[j], lower_bound[j], upper_bound[j]);
+    }
+
+    children[target] = child;
+}
+
+// Function for comparing two nodes
+bool distributed_shade_cooperative_coevolutive::compare(node a, node b) {   
+    // get best nodes
+    return a.fitness < b.fitness;
+} 
+
+void distributed_shade_cooperative_coevolutive::shade(optimization_problem &problem, std::set<size_t> &sub_problem){
 
 	std::vector<scalar> pop_sf;
 	std::vector<scalar> pop_cr;
-	std::vector<scalar> pop_freq;
 	pop_sf.resize(sub_problem.size());
 	pop_cr.resize(sub_problem.size());
-	pop_freq.resize(sub_problem.size());	
-
-	gg = gg + 1;
-
     
-
 	std::sort(popr.begin(), popr.end(), compare);
-	//cout << popr.size() << " - " << SUBPOP_SIZE << endl;
-	//cout << " {1} " << popr.size() << " - " << SUBPOP_SIZE;
-    for (int target = 0; target < popr.size(); target++) {
 
-		// In each generation, CR_i and F_i used by 
-		//	each individual x_i are generated by  
+	//cout << " {1} " << popr.size() << " - " << SUBPOP_SIZE;
+    for (int target = 0; target < de_size_pop; target++) {
+
+		// In each generation, CR_i and F_i used by each individual x_i are generated by  
 		//	first selecting an index r_i randomly from [1, H] 
-		int random_selected_period = rand() % memory_size;
-		double mu_sf 	= memory_sf[random_selected_period];
-		double mu_cr 	= memory_cr[random_selected_period];
-		double mu_freq 	= memory_freq[random_selected_period];
+		size_t random_selected_period   = rand() % memory_size;
+		scalar mu_sf 	                = memory_sf[random_selected_period];
+		scalar mu_cr 	                = memory_cr[random_selected_period];
 
       	//generate CR_i and repair its value
       	if (mu_cr == -1) {
@@ -1092,63 +1184,34 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 			else if (pop_cr[target] < 0) pop_cr[target] = 0;	
       	}
 
-      	// generate F_i and repair its value
-		int cont1 = 0;
+      	// generate SF_i and repair its value
       	do {
-			cont1++;
 			pop_sf[target] = cauchy_g(mu_sf, 0.1);
-			if (cont1 > 1000) cout << "{1} " << cont1;
       	} while (pop_sf[target] <= 0);
 
-      	// generate F_i and repair its value
-		int cont2 = 0;
-      	do {	
-			cont2++;
-			pop_freq[target] = cauchy_g(mu_freq, 0.1);
-			if (cont2 > 1000) cout << "{2} " << cont2;
-      	} while (pop_freq[target] <= 0);		
+        if (pop_sf[target] > 1) pop_sf[target] = 1;
 
-      	if (pop_sf[target] > 1) pop_sf[target] = 1;
-		if (pop_freq[target] > 1) pop_freq[target] = 1;
+        int p_num        = round(de_size_pop * p_best_rate);
+		int p_best_ind   = rand() % p_num;
 
-		vector<double> sf_freqi(popr.size(), 0);
-      	if(nfe <= NUM_NFE/2)
-			pop_sf[target] = sf_corr(freq_inti, pop_freq[target], G_Max, gg);
+      	operateCurrentToPBest1BinWithArchive(target, p_best_ind, pop_sf[target], pop_cr[target], sub_problem, 
+                        problem.get_lower_bound(), problem.get_upper_bound());
 
-      	// p-best individual is randomly selected from 
-		//  	the top pop_size *  p_i members
-		int p_best_ind = rand() % p_num;
-
-      	children[target] = operateCurrentToPBest1BinWithArchive(popr, target, 
-		  	p_best_ind, pop_sf[target], pop_cr[target], archive);
     }
-	//cout << " {2} passou 1.";
-	
-    // evaluate the children's fitness values
-    evaluatePopulation(children, optimum);
 
-	// nfe is equal to popsize in first run
-	nfe = nfe + SUBPOP_SIZE;
-
-	// update the best
-	node bestg = get_best_node(children, false);
-	if (bestg.fitness < bestr.fitness){
-		bestr = bestg;
-	}
-
-  	// update the bsf-solution and check the current number 
-	//  	of fitness evaluations if the current number of 
-	// 		fitness evaluations over the max number of fitness 
-	// 		evaluations, the search is terminated. So, this 
-	// 		program is unconcerned about L-SHADE algorithm directly
-	vector<double> dif, goodCR, goodSF, goodFreq, dif_val;
-	for (int i = 0; i < popr.size(); i++) {
-		double difi = fabs(popr[i].fitness - children[i].fitness);
+    for(int i = 0; i < de_size_pop; i++){
+        children[i].fitness = problem.value(children[i].x);
+        ++this->current_criteria.evaluations;
+        update_best_solution(children[i].x, children[i].fitness, i);
+    }
+    
+	std::vector<scalar> dif, goodCR, goodSF, dif_val;
+	for (int i = 0; i < de_size_pop; i++) {
+		scalar difi = fabs(popr[i].fitness - children[i].fitness);
 		dif.push_back(difi);
 		if (popr[i].fitness > children[i].fitness) {
 			goodCR.push_back(pop_cr[i]);
 			goodSF.push_back(pop_sf[i]);
-			goodFreq.push_back(pop_freq[i]);
 			dif_val.push_back(difi);
 
 			int flag_dup = 0;
@@ -1164,8 +1227,7 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 					archive.pop[archive.arc_ind_count] = popr[i];
 					archive.arc_ind_count++;
 				}
-				//Whenever the size of the archive exceeds, 
-				//  randomly selected elements are deleted to
+				//Whenever the size of the archive exceeds, randomly selected elements are deleted to
 				// 	make space for the newly inserted elements
 				else {
 					int random_selected_arc_ind = rand() % archive.NP;
@@ -1176,29 +1238,26 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 	}
 	pop_cr.clear();
 	pop_sf.clear();
-	pop_freq.clear();
 
     // generation alternation
     for (int i = 0; i < popr.size(); i++) {
 		if (children[i].fitness < popr[i].fitness) {
-			popr[i] = children[i];
+			popr[i]                 = children[i];
+            pop[popr[i].node_id]    = children[i].x;
+            fx_pop[popr[i].node_id] = children[i].fitness;
 		}
 	}
 
-	//popr_old = popr;
-	
     int num_success_params = goodCR.size();
 
-    // if numeber of successful parameters > 0, 
-	//  	historical memories are updated 
+    // if number of successful parameters > 0, historical memories are updated 
     if (num_success_params > 0) {      
       	memory_sf[memory_pos] 	= 0;
       	memory_cr[memory_pos] 	= 0;
-      	double temp_sum_sf 		= 0;
-      	double temp_sum_cr 		= 0;
-		double temp_sum_freq 	= 0;
-      	double sum 				= 0;
-		double weight;
+      	scalar temp_sum_sf 		= 0;
+      	scalar temp_sum_cr 		= 0;
+      	scalar sum 				= 0;
+		scalar weight;
       
 		for (auto& n : dif_val)
 			sum += n;
@@ -1212,9 +1271,6 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 
 			memory_cr[memory_pos] += weight * goodCR[i] * goodCR[i];
 			temp_sum_cr += weight * goodCR[i];
-
-			memory_freq[memory_pos] += weight * goodFreq[i] * goodFreq[i];
-			temp_sum_freq += weight * goodFreq[i];
       	}
 
       	memory_sf[memory_pos] /= temp_sum_sf;
@@ -1223,188 +1279,12 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 		  	memory_cr[memory_pos] = -1;
       	else memory_cr[memory_pos] /= temp_sum_cr;
 
-      	if (temp_sum_freq == 0 || memory_freq[memory_pos] == -1) 
-		  	memory_freq[memory_pos] = -1;
-      	else memory_freq[memory_pos] /= temp_sum_freq;
-
       	memory_pos++;
       	if (memory_pos >= memory_size) memory_pos = 0;
 
       	//clear out the S_F, S_CR and delta fitness
       	goodCR.clear();
       	goodSF.clear();
-		goodFreq.clear();
       	dif_val.clear();
-    }	
-
-	// for resizing the population size
-	if (nfe >= (NUM_NFE/2)){
-		counter++;
-		int plan_pop_size = round(((((min_pop_size + 1) - max_pop_size) / NUM_NFE) * nfe) + max_pop_size);
-		
-		int reduction_ind_num;
-		if (SUBPOP_SIZE > plan_pop_size) {
-			reduction_ind_num = SUBPOP_SIZE - plan_pop_size;
-            if ((SUBPOP_SIZE - reduction_ind_num) < min_pop_size) 
-				reduction_ind_num = SUBPOP_SIZE - min_pop_size;
-			
-			if (counter == 1){
-				int count = 0;
-				bool stop = false;
-				vector<node> niche;
-			
-            	// Change here Niche-based reduction
-            	//		Firstly exclude the best niche (Half of the individuals)
-            	//		Step 1: sort according fitness to pick up the best individual			
-			
-            	// 		Step 2: find E-distance between best_mem and all others
-            	// 			To Choose neighbourhood region to the best individual
-
-				// 	sort(popr.begin(), popr.end(), compare);
-				
-				// calculate euclidean distance
-				for (int i = 0; i < popr.size(); i++){
-					popr[i].distance = distance(popr[i].x, bestr.x);
-				}
-				// Sort and chooose smallest distance to have higher diversity
-				sort(popr.begin(), popr.end(), compare_by_dist);
-
-				// Select the members of the best niche
-				int best_niche_size = round(SUBPOP_SIZE/2);
-				vector<node> best_niche;
-				best_niche.resize(best_niche_size);
-
-				for (int i = 0; i < best_niche_size; i++){
-					best_niche[i] = popr[i];
-					popr.erase(popr.begin()+i);
-				}
-				//popr = popr_old;
-
-				int niche_size = 20;
-				node best_mem;
-				for (int i = 0; i < reduction_ind_num; i++){
-					sort(popr.begin(), popr.end(), compare);
-					best_mem = popr[0];
-
-					// calculate euclidean distance
-					for (int j = 0; j < popr.size(); j++){
-						popr[j].distance = distance(popr[j].x, best_mem.x);
-					}
-
-					// Sort and chooose smallest distance to have higher diversity
-					sort(popr.begin(), popr.end(), compare_by_dist);
-
-					if (popr.size() < niche_size)
-						niche_size = popr.size();
-
-					niche.resize(niche_size);		
-
-					for (int j = 0; j < niche_size; j++)
-						niche[j] = popr[j];	
-
-            		// Now remove half of them excluding the best 
-					int del_vec = 0;
-					for (int t = 0; t < (niche_size/2); t++){
-						count++;
-						del_vec++;
-						if (count == reduction_ind_num) {
-							stop = true;
-							break;
-						}
-					}
-
-					if (niche.size() > 0)
-						niche.erase(niche.begin() + 1, niche.begin() + (del_vec+1)); 
-					if (popr.size() > 0){
-						popr.erase(popr.begin() + 1, popr.begin() + (del_vec+1));
-					}
-					
-					if (stop == true)
-						break;					
-				}
-
-				popr.insert(popr.end(), best_niche.begin(), best_niche.end());
-
-				SUBPOP_SIZE = SUBPOP_SIZE - reduction_ind_num;
-				UN 			= SUBPOP_SIZE;
-
-			}
-			// if counter is not 1
-			else{
-				SUBPOP_SIZE = SUBPOP_SIZE - reduction_ind_num;
-				UN 			= SUBPOP_SIZE;
-
-				for (int i = 0; i < reduction_ind_num; i++){
-					sort(popr.begin(), popr.end(), compare);
-					popr.erase(popr.end()-1);
-				}
-			}
-
-			// update archive size
-			archive.NP = round(arc_rate * SUBPOP_SIZE);
-			
-			if (archive.pop.size() > archive.NP){
-				int tam_arc = archive.pop.size();
-				//cout << " {4} " << archive.pop.size() << " " << archive.NP;
-				int cont5 = 0;
-				do {
-					cont5++;
-					//if (cont5 > 1000) cout << "{5} " << cont5;
-					int del = rand() % archive.pop.size();
-					archive.pop.erase(archive.pop.begin()+del);	
-					tam_arc--;
-				} while (tam_arc > archive.NP);
-			}
-			if (archive.arc_ind_count > archive.NP) 
-				archive.arc_ind_count = archive.NP;
-		}	
-	}
-
-    // Call LS based on Gaussian works when NP 
-	//  	is less than 20 for the first time
-	if (SUBPOP_SIZE <= 20)
-		counter = counter + 1;
-
-	// Local Search
-	bool flag_LS = false;
-	if (counter == 1)
-		flag_LS = true;
-	else
-		flag_LS = false;
-
-	flag_LS = false;
-	if (flag_LS == true){
-		// Pick 10 random individuals from L-SHADE pop
-		for (int gen_LS = 0; gen_LS < GenMaxSelected; gen_LS++){
-			// creating new point
-			vector<node> new_point;
-			new_point.resize(popsize_LS);
-
-			for (int i = 0; i < popsize_LS; i++){
-				new_point[i] = ls_process(popr_ls[i], igen, bestls);
-			}
-			evaluatePopulation(new_point, optimum);
-
-			for (int i = 0; i < popsize_LS; i++){
-				int r_index = rand() % popr.size();
-				// Update those 10 random individuals from pop L-SHADE
-				if (new_point[i].fitness < popr[r_index].fitness){
-					popr[r_index] = new_point[i];
-				} 
-				// Update best individual L-SHADE
-				if (new_point[i].fitness < bestr.fitness){
-					bestr = new_point[i];
-				}
-				nfe = nfe + 1;
-			}
-
-			sort(new_point.begin(), new_point.end(), compare);
-			// first point is the best
-			bestls = new_point[0];
-			popr_ls = new_point;
-		}
-	}
-	//cout << "[" << rank << "] {6} passou." << endl; 
-
+    }
 }
-*/

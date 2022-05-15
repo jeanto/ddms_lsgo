@@ -55,6 +55,12 @@ class distributed_shade_cooperative_coevolutive : public solver {
         scalar distance;
     };
 
+    struct node_arc {
+        size_t NP;					// number of individuals
+        size_t arc_ind_count;		// number of filled positions
+        std::vector<node> pop;	    // archived individuals
+    };
+
     // convergence struct 
     struct conv {
         std::vector<scalar> m;	 		// mean vector
@@ -134,11 +140,27 @@ class distributed_shade_cooperative_coevolutive : public solver {
 
     // SHADE
     protected:
-        size_t gg = 0; 	// generation counter used For Sin
+        const size_t memory_size    = 5;    
+        const scalar arc_rate       = 1.4;
+        const scalar PI             = 3.1415926535897932384626433832795029;
+        const scalar p_best_rate 	= 0.11;
+        int arc_size;	
+        int memory_pos              = 0;
+
+        std::vector<node> popr;     // population of each process
+        std::vector<node> children; // children of each process
+        node_arc archive;		    // archive struct
+        std::vector<scalar> memory_sf {0.5,0.5,0.5,0.5,0.5};
+        std::vector<scalar> memory_cr {0.5,0.5,0.5,0.5,0.5};
 
     public:
         // SHADE
-        void shade(optimization_problem &problem, size_t index_sub_problem, std::set<size_t> &sub_problem);
+        void shade(optimization_problem &problem, std::set<size_t> &sub_problem);
+        scalar gauss(scalar mu, scalar sigma);
+        scalar cauchy_g(scalar mu, scalar gamma);
+        bool compare(node a, node b);
+        void operateCurrentToPBest1BinWithArchive(int &target, int &p_best_individual, scalar &scaling_factor, scalar &cross_rate,
+                    std::set<size_t> &sub_problem, std::vector<scalar> lower_bound, std::vector<scalar> upper_bound);
 
 };
 
