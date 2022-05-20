@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
     const size_t idx = atoi(argv[3]);
 
     const size_t max_rep = 1;   // 30;
-    string methods[] = {"DG"};  //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
+    string methods[] = {"DG2"};  //string methods[] = {"DG", "DG2", "XDG", "FII", "GDG", "RDG", "RDG2", "RDG3"};
 
     //for(size_t id_function = 1; id_function <= max_id_function; id_function++){
     for(size_t id_function = max_id_function; id_function <= max_id_function; id_function++){
@@ -348,7 +348,7 @@ int main(int argc, char** argv) {
 
                         const clock_t begin_time = clock();
                         solver.minimize(f, x0);
-                        const clock_t end_time  = clock();
+                        const clock_t end_time  = clock(); 
                         scalar timei 		    = double(end_time - begin_time) / CLOCKS_PER_SEC;
 
                         x0 = solver.get_best_solution();
