@@ -244,6 +244,8 @@ int main(int argc, char** argv) {
                         vector<scalar> x0(dimension, 0.0);
                         //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+
+                        //distributed_shade_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::None);
 
                         // set method
@@ -274,6 +276,8 @@ int main(int argc, char** argv) {
                         vector<scalar> x0(dimension, 0.0);
                         //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        
+                        //distributed_shade_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::None);
 
                         // set method
@@ -304,6 +308,8 @@ int main(int argc, char** argv) {
                         vector<scalar> x0(dimension, 0.0);
                         //differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
                         distributed_differential_evolution_cooperative_coevolutive solver(current_, stop_, options_);
+                        
+                        //distributed_shade_cooperative_coevolutive solver(current_, stop_, options_);
                         solver.set_debug(debug_level::None);                        
                         
                         // set method

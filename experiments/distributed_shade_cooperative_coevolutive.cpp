@@ -123,8 +123,8 @@ void distributed_shade_cooperative_coevolutive::update_best_solution(std::vector
 void distributed_shade_cooperative_coevolutive::allocate_initial_population(){
     pop.reserve(de_size_pop);
     pop_aux.reserve(de_size_pop);
-    popr.reserve(de_size_pop);      
-    children.reserve(de_size_pop);	
+    popr.resize(de_size_pop);      
+    children.resize(de_size_pop);	
     arc_size                = (int)round(de_size_pop * arc_rate);
     archive.NP 				= arc_size;
     archive.arc_ind_count 	= 0;
@@ -133,10 +133,10 @@ void distributed_shade_cooperative_coevolutive::allocate_initial_population(){
         std::vector<scalar> x(dimension, 0.0);
         pop.push_back(x);
         pop_aux.push_back(x);
+        popr[i].node_id = i;
         for (size_t j = 0; j < dimension; j++){
-            popr[i].x.push_back(0.0);
+            popr[i].x.push_back(x[j]);
         }
-        popr[i].fitness = 1.0;
     }
     fx_pop      = std::vector<scalar>(de_size_pop, 1.0);
     fx_pop_aux  = std::vector<scalar>(de_size_pop, 1.0);
@@ -144,12 +144,11 @@ void distributed_shade_cooperative_coevolutive::allocate_initial_population(){
 
 void distributed_shade_cooperative_coevolutive::generate_evaluate_init_population(optimization_problem &problem){
     for(size_t i = 0; i < de_size_pop; i++){
-        popr[i].node_id = i;
         for (size_t j = 0; j < dimension; j++) {
             std::uniform_real_distribution<scalar> dist(problem.get_lower_bound()[j], problem.get_upper_bound()[j]);
                 pop[i][j] = dist(default_generator());
                 pop_aux[i][j] = pop[i][j];
-                popr[i].x.push_back(pop[i][j]);
+                popr[i].x[j]  = pop[i][j];
         }
         scalar fx       = problem.value(pop[i]);
         ++this->current_criteria.evaluations;
@@ -371,7 +370,7 @@ void distributed_shade_cooperative_coevolutive::ddms_evolution(optimization_prob
 				break;
 			}
 
-            /*
+            
             for(size_t i = 0; i < de_size_pop; i++){
                 index[0] = i;
                 generate_random_index(index, n_solutions, 0, de_size_pop-1);
@@ -397,10 +396,10 @@ void distributed_shade_cooperative_coevolutive::ddms_evolution(optimization_prob
                 }
                 popr[i].fitness = fx_pop_aux[i];
             }
-            */
+            
 
             // SHADE
-            shade(problem, sub_problem);
+            //shade(problem, sub_problem);
 
             ++this->current_criteria.iterations;
             this->current_criteria.fx_best = fx_best_solution;
@@ -960,6 +959,7 @@ void distributed_shade_cooperative_coevolutive::fixed_proba_evolution(optimizati
                 pop[i] = pop_aux[i];
                 fx_pop[i] = fx_pop_aux[i];
                 
+                
                 for(unsigned long j : sub_problem){
                     popr[i].x.push_back(pop_aux[i][j]);
                 }
@@ -967,6 +967,7 @@ void distributed_shade_cooperative_coevolutive::fixed_proba_evolution(optimizati
             }
         }
         */
+        
         shade(problem, sub_problem);
 
         ++this->current_criteria.iterations;
@@ -1107,7 +1108,10 @@ void distributed_shade_cooperative_coevolutive::operateCurrentToPBest1BinWithArc
     
     do {
         r1 = rand() % de_size_pop;
+        std::cout << target << " " << r1 << " ";
     } while (r1 == target);
+
+    /*
     do {
         r2 = rand() % (de_size_pop + archive.arc_ind_count);
     } while ((r2 == target) || (r2 == r1));
@@ -1116,6 +1120,7 @@ void distributed_shade_cooperative_coevolutive::operateCurrentToPBest1BinWithArc
     auto max            = sub_problem.end();
     max--;
     int random_variable  = rand() % (*max - *min + 1) + *min;
+    
     
     if (r2 >= de_size_pop) {
         r2 -= de_size_pop;
@@ -1148,6 +1153,7 @@ void distributed_shade_cooperative_coevolutive::operateCurrentToPBest1BinWithArc
     }
 
     children[target] = child;
+    */
 }
 
 // Function for comparing two nodes
@@ -1160,11 +1166,12 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 
 	std::vector<scalar> pop_sf;
 	std::vector<scalar> pop_cr;
-	pop_sf.resize(sub_problem.size());
-	pop_cr.resize(sub_problem.size());
+	pop_sf.resize(de_size_pop);
+	pop_cr.resize(de_size_pop);
     
-	std::sort(popr.begin(), popr.end(), compare);
+	//sort(popr.begin(), popr.end(), compare);
 
+    
 	//cout << " {1} " << popr.size() << " - " << SUBPOP_SIZE;
     for (int target = 0; target < de_size_pop; target++) {
 
@@ -1173,7 +1180,7 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 		size_t random_selected_period   = rand() % memory_size;
 		scalar mu_sf 	                = memory_sf[random_selected_period];
 		scalar mu_cr 	                = memory_cr[random_selected_period];
-
+        
       	//generate CR_i and repair its value
       	if (mu_cr == -1) {
 			pop_cr[target] = 0;
@@ -1183,7 +1190,7 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 			if (pop_cr[target] > 1) pop_cr[target] = 1;
 			else if (pop_cr[target] < 0) pop_cr[target] = 0;	
       	}
-
+        
       	// generate SF_i and repair its value
       	do {
 			pop_sf[target] = cauchy_g(mu_sf, 0.1);
@@ -1193,11 +1200,12 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
 
         int p_num        = round(de_size_pop * p_best_rate);
 		int p_best_ind   = rand() % p_num;
-
+        
       	operateCurrentToPBest1BinWithArchive(target, p_best_ind, pop_sf[target], pop_cr[target], sub_problem, 
                         problem.get_lower_bound(), problem.get_upper_bound());
 
     }
+    /*
 
     for(int i = 0; i < de_size_pop; i++){
         children[i].fitness = problem.value(children[i].x);
@@ -1287,4 +1295,5 @@ void distributed_shade_cooperative_coevolutive::shade(optimization_problem &prob
       	goodSF.clear();
       	dif_val.clear();
     }
+    */
 }

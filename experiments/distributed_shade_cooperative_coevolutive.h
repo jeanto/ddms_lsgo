@@ -123,23 +123,10 @@ class distributed_shade_cooperative_coevolutive : public solver {
         const scalar r0 = 0.001;
 
         // FIXED and PROBA params and variables
-        size_t FIXED_INTERVAL100 = 100;    // as Apolloni (2008, 2014), it migrates every 100 generations
-        size_t FIXED_INTERVAL50  = 50;     // as Meng (2017), it migrates every 50 generations
-        scalar PROBA_INTERVAL    = 0.05;   // probabilist migration
+        size_t FIXED_INTERVAL100    = 100;    // as Apolloni (2008, 2014), it migrates every 100 generations
+        size_t FIXED_INTERVAL50     = 50;     // as Meng (2017), it migrates every 50 generations
+        scalar PROBA_INTERVAL       = 0.05;   // probabilist migration
 
-    public:
-        void convergence(std::set<size_t> &sub_problem);
-        void stagnation(std::set<size_t> &sub_problem, size_t isub);
-        void need_rediversify(std::set<size_t> &sub_problem);
-        scalar rand_0_1();
-        void teda_cloud(node ind_received, optimization_problem &problem);
-        void update_cloud(size_t c, node ind);
-        scalar distance(std::vector<scalar> x, std::vector<scalar> uk);
-        std::vector<scalar> ls_process(node pop_ls, std::vector<scalar> best_point, optimization_problem &problem);
-
-
-    // SHADE
-    protected:
         const size_t memory_size    = 5;    
         const scalar arc_rate       = 1.4;
         const scalar PI             = 3.1415926535897932384626433832795029;
@@ -154,11 +141,20 @@ class distributed_shade_cooperative_coevolutive : public solver {
         std::vector<scalar> memory_cr {0.5,0.5,0.5,0.5,0.5};
 
     public:
+        void convergence(std::set<size_t> &sub_problem);
+        void stagnation(std::set<size_t> &sub_problem, size_t isub);
+        void need_rediversify(std::set<size_t> &sub_problem);
+        scalar rand_0_1();
+        void teda_cloud(node ind_received, optimization_problem &problem);
+        void update_cloud(size_t c, node ind);
+        scalar distance(std::vector<scalar> x, std::vector<scalar> uk);
+        std::vector<scalar> ls_process(node pop_ls, std::vector<scalar> best_point, optimization_problem &problem);
+
         // SHADE
         void shade(optimization_problem &problem, std::set<size_t> &sub_problem);
         scalar gauss(scalar mu, scalar sigma);
         scalar cauchy_g(scalar mu, scalar gamma);
-        bool compare(node a, node b);
+        static bool compare(node a, node b);
         void operateCurrentToPBest1BinWithArchive(int &target, int &p_best_individual, scalar &scaling_factor, scalar &cross_rate,
                     std::set<size_t> &sub_problem, std::vector<scalar> lower_bound, std::vector<scalar> upper_bound);
 
