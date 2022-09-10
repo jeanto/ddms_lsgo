@@ -40,6 +40,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         void generate_evaluate_init_population(optimization_problem &problem);
         static void generate_random_index(std::vector<size_t> &v, size_t n, size_t min, size_t max);
         static scalar get_bounds(scalar x, scalar min_bound, scalar max_bound);
+        void current_to_pbest_mutation(optimization_problem &problem, size_t i_ind, size_t i_x, std::vector<size_t> &index, std::vector<scalar> &fx_pbest, scalar de_f);
         void differential_mutation_operator(optimization_problem &problem, size_t i_ind, size_t i_x, std::vector<size_t> &index);
         void evolution(optimization_problem &problem, size_t index_sub_problem);
         void ddms_evolution(optimization_problem &problem, size_t index_sub_problem);
@@ -121,15 +122,23 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         size_t FIXED_INTERVAL50  = 50;     // as Meng (2017), it migrates every 50 generations
         scalar PROBA_INTERVAL    = 0.05;   // probabilist migration
 
+        const scalar PI          = 3.1415926535897932384626433832795029;
+        scalar ucr               = 0.5;
+        scalar uf                = 0.6;
+
     public:
         void convergence(std::set<size_t> &sub_problem);
         void stagnation(std::set<size_t> &sub_problem, size_t isub);
         void need_rediversify(std::set<size_t> &sub_problem);
         scalar rand_0_1();
+        int rand_x_y(int x, int y);
         void teda_cloud(node ind_received, optimization_problem &problem);
         void update_cloud(size_t c, node ind);
         scalar distance(std::vector<scalar> x, std::vector<scalar> uk);
         std::vector<scalar> ls_process(node pop_ls, std::vector<scalar> best_point, optimization_problem &problem);
+
+        scalar gauss(scalar mu, scalar sigma);
+        scalar cauchy_g(scalar mu, scalar gamma);        
 };
 
 #endif // DECOMPOSITION_LIBRARY_DISTRIBUTED_DIFFERENTIAL_EVOLUTION_COOPERATIVE_COEVOLUTIVE_H

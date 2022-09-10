@@ -3,6 +3,7 @@
 #include <random>
 #include <iomanip>
 #include <mpi.h>
+#include <algorithm>
 
 distributed_differential_evolution_cooperative_coevolutive::distributed_differential_evolution_cooperative_coevolutive(criteria &current_criteria, criteria &stop_criteria, options &o) : super(current_criteria, stop_criteria, o){}
 
@@ -201,6 +202,23 @@ std::string distributed_differential_evolution_cooperative_coevolutive::get_meth
     }
     return met;
 }
+
+void distributed_differential_evolution_cooperative_coevolutive::current_to_pbest_mutation(
+    optimization_problem &problem, size_t i_ind, size_t i_x, std::vector<size_t> &index, std::vector<scalar> &fx_pbest, scalar de_f){
+    
+    std::uniform_real_distribution<scalar> dist(0.5, 1.0);
+    //scalar de_f = dist(default_generator());
+    std::vector<int> y(de_size_pop);
+    std::iota(y.begin(), y.end(), 0);
+    sort(y.begin(), y.end(), [&](int i,int j){return fx_pbest[i] < fx_pbest[j];});
+    
+    int rand_pbest = rand_x_y(0, round(de_size_pop * 0.05));
+    int pbest = y[rand_pbest];
+
+    pop_aux[i_ind][i_x] = pop[index[i_ind]][i_x] + de_f * (pop[index[pbest]][i_x] - pop[index[i_ind]][i_x]) + de_f * (pop[index[2]][i_x] - pop[index[3]][i_x]);
+    pop_aux[i_ind][i_x] = get_bounds(pop_aux[i_ind][i_x], problem.get_lower_bound()[i_x], problem.get_upper_bound()[i_x]);
+}
+
 
 void distributed_differential_evolution_cooperative_coevolutive::differential_mutation_operator(
     optimization_problem &problem, size_t i_ind, size_t i_x, std::vector<size_t> &index){
@@ -528,6 +546,11 @@ int distributed_differential_evolution_cooperative_coevolutive::get_rank() const
 scalar distributed_differential_evolution_cooperative_coevolutive::rand_0_1() {
 	scalar r = static_cast <scalar> (rand()) / static_cast <scalar> (RAND_MAX);
 	return r;
+}
+
+int distributed_differential_evolution_cooperative_coevolutive::rand_x_y(int x, int y){
+    int r = x + (rand() % (y - x + 1 ));
+    return r;
 }
 
 void distributed_differential_evolution_cooperative_coevolutive::convergence(std::set<size_t> &sub_problem){
@@ -913,14 +936,34 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
     this->m_status = check_convergence(this->stop_criteria, this->current_criteria);
     while(this->m_status == status::Continue){
 
+        std::vector<scalar> pop_sf;
+        std::vector<scalar> pop_cr;
+        pop_sf.resize(de_size_pop);
+        pop_cr.resize(de_size_pop);
+
         for(size_t i = 0; i < de_size_pop; i++){
             index[0] = i;
             generate_random_index(index, n_solutions, 0, de_size_pop-1);
             size_t r = dist_dim(default_generator());
             pop_aux[i] = pop[i];
+
+      	    //generate CR_i and repair its value
+            pop_cr[i] = gauss(ucr, 0.1);
+			if (pop_cr[i] > 1) pop_cr[i] = 1;
+			else if (pop_cr[i] < 0) pop_cr[i] = 0;
+            de_cr = pop_cr[i];
+
+            // generate SF_i and repair its value
+            do {
+                pop_sf[i] = cauchy_g(uf, 0.1);
+            } while (pop_sf[i] <= 0);
+
+            if (pop_sf[i] > 1) pop_sf[i] = 1;
+
             for(unsigned long j : sub_problem){
                 if(j == r || dist_cr(default_generator()) <= de_cr){
-                    differential_mutation_operator(problem, i, j, index);
+                    current_to_pbest_mutation(problem, i, j, index, fx_pop, pop_sf[i]);
+                    //differential_mutation_operator(problem, i, j, index);
                 }
             }
             scalar fx = problem.value(pop_aux[i]);
@@ -984,7 +1027,6 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
             }
 
             MPI_Send(best_solution.data(), dimension, MPI_DOUBLE, prev, 0, MPI_COMM_WORLD);
-
             //std::cout << "[" << rank << "] enviou para [" << prev << "] um individuo" << std::endl;
         }
 
@@ -1046,10 +1088,37 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
         //     std::cout << "[" << rank << "] saindo!" << std::endl;
         //     break;
         // }
+
+
+        // Update ucr and uf
+        scalar sum_cr = std::reduce(pop_cr.begin(), pop_cr.end());
+        ucr = (1 - 0.1) * ucr + 0.1 * (sum_cr / de_size_pop);
+
+        scalar sum_sf   = std::reduce(pop_sf.begin(), pop_sf.end());
+
+        std::vector<scalar> power_sf;
+        power_sf.resize(de_size_pop);
+
+        for (size_t j = 0; j < de_size_pop; j++){
+            power_sf[j] = std::pow(pop_sf[j], 2.0);
+        }
+        scalar sum_power_sf = std::reduce(power_sf.begin(), power_sf.end());
+
+        uf = (1 - 0.1) * uf + 0.1 * (sum_power_sf / sum_sf);
     }
 
     if(this->m_debug >= debug_level::VeryLow) {
 	    std::cout << "[" << rank << "] saindo..." << std::endl;
     }
     MPI_Barrier(MPI_COMM_WORLD);
+}
+
+
+
+scalar distributed_differential_evolution_cooperative_coevolutive::gauss(scalar mu, scalar sigma){
+    return mu + sigma * std::sqrt(-2.0 * std::log(rand_0_1())) * std::sin(2.0 * PI * rand_0_1());
+}
+
+scalar distributed_differential_evolution_cooperative_coevolutive::cauchy_g(scalar mu, scalar gamma) {
+    return mu + gamma * std::tan(PI*(rand_0_1() - 0.5));
 }
