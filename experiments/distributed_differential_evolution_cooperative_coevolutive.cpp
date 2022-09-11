@@ -208,14 +208,16 @@ void distributed_differential_evolution_cooperative_coevolutive::current_to_pbes
     
     std::uniform_real_distribution<scalar> dist(0.5, 1.0);
     //scalar de_f = dist(default_generator());
-    std::vector<int> y(de_size_pop);
-    std::iota(y.begin(), y.end(), 0);
-    sort(y.begin(), y.end(), [&](int i,int j){return fx_pbest[i] < fx_pbest[j];});
-    
-    int rand_pbest = rand_x_y(0, round(de_size_pop * 0.05));
-    int pbest = y[rand_pbest];
+    std::vector<int> sort_i(de_size_pop);
+    std::iota(sort_i.begin(), sort_i.end(), 0);
+    sort(sort_i.begin(), sort_i.end(), [&](int a, int b){return fx_pbest[a] < fx_pbest[b];});
 
-    pop_aux[i_ind][i_x] = pop[index[i_ind]][i_x] + de_f * (pop[index[pbest]][i_x] - pop[index[i_ind]][i_x]) + de_f * (pop[index[2]][i_x] - pop[index[3]][i_x]);
+    int rand_pbest = rand_x_y(0, round(de_size_pop * 0.05));
+
+    int pbest = sort_i[rand_pbest];
+    
+    // V_{i, G} = X_{i, G} + F_w * (X_{p_best, G} - X_{i, G} + F * (X_{r1. G} - X_{r2, G}
+    pop_aux[i_ind][i_x] = pop[index[0]][i_x] + de_f * (pop[pbest][i_x] - pop[index[0]][i_x]) + de_f * (pop[index[2]][i_x] - pop[index[3]][i_x]);
     pop_aux[i_ind][i_x] = get_bounds(pop_aux[i_ind][i_x], problem.get_lower_bound()[i_x], problem.get_upper_bound()[i_x]);
 }
 
@@ -549,7 +551,7 @@ scalar distributed_differential_evolution_cooperative_coevolutive::rand_0_1() {
 }
 
 int distributed_differential_evolution_cooperative_coevolutive::rand_x_y(int x, int y){
-    int r = x + (rand() % (y - x + 1 ));
+    int r = x + (rand() % (y - x + 1));
     return r;
 }
 
@@ -948,6 +950,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
             pop_aux[i] = pop[i];
 
       	    //generate CR_i and repair its value
+            
             pop_cr[i] = gauss(ucr, 0.1);
 			if (pop_cr[i] > 1) pop_cr[i] = 1;
 			else if (pop_cr[i] < 0) pop_cr[i] = 0;
@@ -959,7 +962,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
             } while (pop_sf[i] <= 0);
 
             if (pop_sf[i] > 1) pop_sf[i] = 1;
-
+            
             for(unsigned long j : sub_problem){
                 if(j == r || dist_cr(default_generator()) <= de_cr){
                     current_to_pbest_mutation(problem, i, j, index, fx_pop, pop_sf[i]);
