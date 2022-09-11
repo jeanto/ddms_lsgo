@@ -374,14 +374,34 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 				break;
 			}
 
+            std::vector<scalar> pop_sf;
+            std::vector<scalar> pop_cr;
+            pop_sf.resize(de_size_pop);
+            pop_cr.resize(de_size_pop);
+
             for(size_t i = 0; i < de_size_pop; i++){
                 index[0] = i;
                 generate_random_index(index, n_solutions, 0, de_size_pop-1);
                 size_t r = dist_dim(default_generator());
                 pop_aux[i] = pop[i];
+
+                //generate CR_i and repair its value 
+                pop_cr[i] = gauss(ucr, 0.1);
+                if (pop_cr[i] > 1) pop_cr[i] = 1;
+                else if (pop_cr[i] < 0) pop_cr[i] = 0;
+                de_cr = pop_cr[i];
+
+                // generate SF_i and repair its value
+                do {
+                    pop_sf[i] = cauchy_g(uf, 0.1);
+                } while (pop_sf[i] <= 0);
+
+                if (pop_sf[i] > 1) pop_sf[i] = 1;
+
                 for(unsigned long j : sub_problem){
                     if(j == r || dist_cr(default_generator()) <= de_cr){
-                        differential_mutation_operator(problem, i, j, index);
+                        current_to_pbest_mutation(problem, i, j, index, fx_pop, pop_sf[i]);
+                        //differential_mutation_operator(problem, i, j, index);
                     }
                 }
                 scalar fx = problem.value(pop_aux[i]);
@@ -528,6 +548,23 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 
                 update_best_solution(ind_mig, fx_mig, id);               
             }
+
+            // Update ucr and uf
+            scalar sum_cr = std::reduce(pop_cr.begin(), pop_cr.end());
+            ucr = (1 - 0.1) * ucr + 0.1 * (sum_cr / de_size_pop);
+
+            scalar sum_sf   = std::reduce(pop_sf.begin(), pop_sf.end());
+
+            std::vector<scalar> power_sf;
+            power_sf.resize(de_size_pop);
+
+            for (size_t j = 0; j < de_size_pop; j++){
+                power_sf[j] = std::pow(pop_sf[j], 2.0);
+            }
+            scalar sum_power_sf = std::reduce(power_sf.begin(), power_sf.end());
+
+            uf = (1 - 0.1) * uf + 0.1 * (sum_power_sf / sum_sf);
+    
         }
     }
 
@@ -949,8 +986,7 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
             size_t r = dist_dim(default_generator());
             pop_aux[i] = pop[i];
 
-      	    //generate CR_i and repair its value
-            
+      	    //generate CR_i and repair its value 
             pop_cr[i] = gauss(ucr, 0.1);
 			if (pop_cr[i] > 1) pop_cr[i] = 1;
 			else if (pop_cr[i] < 0) pop_cr[i] = 0;
