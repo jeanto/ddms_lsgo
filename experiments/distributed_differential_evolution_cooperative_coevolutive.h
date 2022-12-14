@@ -47,6 +47,7 @@ class distributed_differential_evolution_cooperative_coevolutive : public solver
         void fixed_proba_evolution(optimization_problem &problem, size_t index_sub_problem);
         int get_rank() const;
         std::string get_method(migration_method m);
+        void convergence_curve(int rank, int fun, int GEN, int nfe, double error);
 
     // node struct
     struct node {

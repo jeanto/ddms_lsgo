@@ -164,6 +164,7 @@ criteria criteria::defaults() {
     d.fx_is_know = false;
     d.fx_best = max_limits();
     d.error_fx_best = 0.0;
+    d.fun = 0;
     return d;
 }
 

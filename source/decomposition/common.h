@@ -91,6 +91,7 @@ namespace decompose {
             bool fx_is_know{};
             scalar fx_best{};
             scalar error_fx_best{};
+            scalar fun{};
             criteria();
             static criteria defaults();
             void reset();

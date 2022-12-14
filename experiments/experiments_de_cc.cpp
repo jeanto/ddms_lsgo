@@ -168,6 +168,7 @@ int main(int argc, char** argv) {
                 stop_.error_fx_best = 0.0;
                 //stop_.error_fx_best = 1e-8;
                 stop_.fx_best = 0.0;
+                stop_.fun = id_function;
 
                 switch (id_function) { 
                     case 1: {

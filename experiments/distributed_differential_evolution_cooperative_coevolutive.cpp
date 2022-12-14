@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <mpi.h>
 #include <algorithm>
+#include <iostream>
+#include <fstream>
 
 distributed_differential_evolution_cooperative_coevolutive::distributed_differential_evolution_cooperative_coevolutive(criteria &current_criteria, criteria &stop_criteria, options &o) : super(current_criteria, stop_criteria, o){}
 
@@ -566,12 +568,22 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
             uf = (1 - 0.1) * uf + 0.1 * (sum_power_sf / sum_sf);
     
         }
+
+        convergence_curve(this->stop_criteria.fun, rank, this->current_criteria.iterations, this->current_criteria.evaluations, fx_best_solution);
     }
 
     if(this->m_debug >= debug_level::VeryLow) {
 	    std::cout << "[" << rank << "] saindo..." << std::endl;
     }
     //MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void distributed_differential_evolution_cooperative_coevolutive::convergence_curve(int rank, int fun, int GEN, int nfe, double error){
+	std::string filePath = "f_" + std::to_string(fun) + "_" + std::to_string(rank) + ".csv";
+
+    std::ofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
+    ofs << fun << ';' << rank << ';' << GEN << ';' << nfe << ';' << error << '\n';
+    ofs.close();
 }
 
 std::vector<scalar> distributed_differential_evolution_cooperative_coevolutive::get_best_solution() const{
