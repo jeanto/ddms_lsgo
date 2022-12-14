@@ -569,7 +569,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
     
         }
 
-        convergence_curve(this->stop_criteria.fun, rank, this->current_criteria.iterations, this->current_criteria.evaluations, fx_best_solution);
+        convergence_curve(rank, this->stop_criteria.fun, this->current_criteria.iterations, this->current_criteria.evaluations, fx_best_solution);
     }
 
     if(this->m_debug >= debug_level::VeryLow) {
