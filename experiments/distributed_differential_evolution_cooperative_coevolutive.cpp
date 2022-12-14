@@ -579,7 +579,7 @@ void distributed_differential_evolution_cooperative_coevolutive::ddms_evolution(
 }
 
 void distributed_differential_evolution_cooperative_coevolutive::convergence_curve(int rank, int fun, int GEN, int nfe, double error){
-	std::string filePath = "f_" + std::to_string(fun) + "_" + std::to_string(rank) + ".csv";
+	std::string filePath = "f" + std::to_string(fun) + "_" + std::to_string(rank) + ".csv";
 
     std::ofstream ofs(filePath.c_str(), std::ios_base::out | std::ios_base::app);
     ofs << fun << ';' << rank << ';' << GEN << ';' << nfe << ';' << error << '\n';
