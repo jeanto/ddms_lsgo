@@ -1156,6 +1156,8 @@ void distributed_differential_evolution_cooperative_coevolutive::fixed_proba_evo
         scalar sum_power_sf = std::reduce(power_sf.begin(), power_sf.end());
 
         uf = (1 - 0.1) * uf + 0.1 * (sum_power_sf / sum_sf);
+
+        convergence_curve(rank, this->stop_criteria.fun, this->current_criteria.iterations, this->current_criteria.evaluations, fx_best_solution);
     }
 
     if(this->m_debug >= debug_level::VeryLow) {
